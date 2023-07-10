@@ -72,8 +72,9 @@ dependencies {
     //    https://github.com/Karumi/Dexter
     implementation 'com.karumi:dexter:6.2.3'
     //  MQTT
-//    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
-//    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
-//    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.1'
+    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
+    //eventbus
+    implementation 'org.greenrobot:eventbus:3.0.0'
 
 }

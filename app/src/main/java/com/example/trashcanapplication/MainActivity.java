@@ -22,6 +22,7 @@ import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.widget.Toast;
 
+import com.example.trashcanapplication.MQTT.MyMqttClient;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -40,6 +41,10 @@ import com.karumi.dexter.listener.PermissionRequest;
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.karumi.dexter.listener.single.PermissionListener;
 
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -53,6 +58,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     //谷歌地图控件
     MapView mapView;
     GoogleMap googleMap;
+    //MQTT
+    private MyMqttClient myMQTTClient;
+    private String ClientName = "Android";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +78,30 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 Toast.makeText(MainActivity.this, "google play 服务不可用", Toast.LENGTH_SHORT).show();
             }
         }
+        /* -------------------------------------------------------------------------------------- */
+        myMQTTClient = MyMqttClient.getInstance();
+        //初始化连接
+        myMQTTClient.start(ClientName);
+        //订阅/World这个主题
+        myMQTTClient.subTopic("TrashCanPub");
+        myMQTTClient.publishMessage("testtopic/1","安卓客户端连接测试",0);
+        /* -------------------------------------------------------------------------------------- */
+        //使用EventBus与线程交流
+        //TODO：也可以使用handler
+//        https://blog.csdn.net/x97666/article/details/125172129
+//        https://blog.csdn.net/android410223Sun/article/details/123183448
+        EventBus.getDefault().register(this);
+    }
 
+    /***
+     * EventBus回调
+     * 如果使用事件处理函数指定了线程模型为MainThread，那么不论事件是在哪个线程中发布出来的，
+     * 该事件处理函数都会在UI线程中执行。该方法可以用来更新UI，但是不能处理耗时操作。
+     * https://blog.csdn.net/weixin_42602900/article/details/127785935
+     */
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onMessageEvent(String s) {
+        Toast.makeText(MainActivity.this, s, Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -211,6 +242,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onDestroy() {
         super.onDestroy();
         mapView.onDestroy();
+        //注销EventBus
+        EventBus.getDefault().unregister(this);
     }
 
     @Override
