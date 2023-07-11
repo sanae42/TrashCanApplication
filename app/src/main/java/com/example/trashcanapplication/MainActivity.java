@@ -11,6 +11,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -20,6 +22,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.provider.Settings;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
@@ -45,9 +48,11 @@ import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -62,12 +67,54 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MyMqttClient myMQTTClient;
     private String ClientName = "Android";
 
+    //搜索栏
+    private SearchView mSearchView = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        //谷歌地图视图
         mapView = findViewById(R.id.mapView);
+        //搜索栏
+        //TODO:使用搜索框后，光标一直在搜索框上，mapView无法回到自己的位置
+        mSearchView = (SearchView) findViewById(R.id.searchView);
+        mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                if(s!=null){
+                    if(isNumber(s)){
+                        //搜索的是数字
+                    }else {
+                        //搜索的是字符
+                        //Geocoder：根据经纬度获取详细地址信息 / 根据详细地址获取经纬度信息
+                        Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
+                        try {
+                            List<Address>addressList = geocoder.getFromLocationName(s,1);
+                            if(addressList.size() > 0){
+                                LatLng latLng = new LatLng(addressList.get(0).getLatitude(), addressList.get(0).getLongitude());
+                                MarkerOptions markerOptions = new MarkerOptions();
+                                markerOptions.title("Search Position");
+                                markerOptions.position(latLng);
+                                googleMap.addMarker(markerOptions);
+                                // 移动相机视角
+                                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
+                                googleMap.animateCamera(cameraUpdate);
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                return false;
+            }
+        });
 
         checkPermission();
         if (isPermissionGranter) {
@@ -92,6 +139,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        https://blog.csdn.net/android410223Sun/article/details/123183448
         EventBus.getDefault().register(this);
     }
+    /**
+     * 判断是否为数字
+     */
+    private boolean isNumber(String str) {
+        try {
+            Integer.parseInt(str);
+            return true;
+        } catch(Exception e){
+            return false;
+        }
+    }
+
 
     /***
      * EventBus回调
