@@ -16,16 +16,13 @@ public class MQTTReceiveCallback implements MqttCallbackExtended {
         Log.e("MqttCallbackBus", "MQTT_connectComplete:");
         //断开连接必须重新订阅才能收到之前订阅的session连接的消息
         if(reconnect){
-            Log.e("MqttCallbackBus_重连订阅主题", "MQTT_connectComplete:");
-            //这里是发送消息去重新订阅
-//            String msg = "reconnect";
-//            EventBus.getDefault().postSticky(msg);
+//            Log.e("MqttCallbackBus_重连订阅主题", "MQTT_connectComplete:");
         }
     }
 
     @Override
     public void connectionLost(Throwable cause) {
-        // 连接丢失后，一般在这里面进行重连
+        // 连接丢失后，进行重连
         System.out.println("连接断开，可以重连");
         Log.e("MqttCallbackBus>>>", "MQTT_connectionLost 掉线原因:"+cause.getMessage());
         cause.printStackTrace();

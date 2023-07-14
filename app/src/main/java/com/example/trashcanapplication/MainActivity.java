@@ -47,6 +47,9 @@ import com.karumi.dexter.listener.single.PermissionListener;
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,7 +68,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     GoogleMap googleMap;
     //MQTT
     private MyMqttClient myMQTTClient;
-    private String ClientName = "Android";
 
     //搜索栏
     private SearchView mSearchView = null;
@@ -128,7 +130,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         /* -------------------------------------------------------------------------------------- */
         myMQTTClient = MyMqttClient.getInstance();
         //初始化连接
-        myMQTTClient.start(ClientName);
+        myMQTTClient.start();
         //订阅/World这个主题
         myMQTTClient.subTopic("TrashCanPub");
         myMQTTClient.publishMessage("testtopic/1","安卓客户端连接测试",0);
@@ -160,7 +162,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String s) {
-        Toast.makeText(MainActivity.this, s, Toast.LENGTH_SHORT).show();
+        //TODO:此处需考虑JSON损坏，转换失败的情况
+        //[{"Id":1,"Distance":67,"Humidity":67,"Temperature":67,"Latitude":52.445978,"Longitude":-1.935167},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156}]
+        JSONArray jsonArray;
+        try{
+            jsonArray = new JSONArray(s);
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObj = null;
+                try {
+                    jsonObj = jsonArray.getJSONObject(i);
+//                    int id = jsonObj.getInt("Id");
+//                    int distance = jsonObj.getInt("Distance");
+//                    Toast.makeText(MainActivity.this, "id和距离为："+id+" "+distance, Toast.LENGTH_SHORT).show();
+
+                    LatLng latLng = new LatLng(jsonObj.getDouble("Latitude"), jsonObj.getDouble("Longitude"));
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.title("Trash Can "+jsonObj.getInt("Id"));
+                    markerOptions.position(latLng);
+                    googleMap.addMarker(markerOptions);
+
+                } catch (JSONException e) {
+                    Toast.makeText(MainActivity.this, "JSON OBJECt转换出错 :"+e.getMessage(), Toast.LENGTH_SHORT).show();
+                    throw new RuntimeException(e);
+                }
+            }
+        }catch (Exception e){
+            Toast.makeText(MainActivity.this, "JSON ARRAY转换出错 :"+e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     /**
