@@ -69,6 +69,8 @@ dependencies {
     debugImplementation 'androidx.compose.ui:ui-test-manifest'
     //    谷歌地图
     implementation 'com.google.android.gms:play-services-maps:18.1.0'
+    //检测GPS开启
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
     //    https://github.com/Karumi/Dexter
     implementation 'com.karumi:dexter:6.2.3'
     //  MQTT

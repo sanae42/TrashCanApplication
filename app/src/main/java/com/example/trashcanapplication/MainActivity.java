@@ -1,18 +1,23 @@
 package com.example.trashcanapplication;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -28,6 +33,13 @@ import android.widget.Toast;
 import com.example.trashcanapplication.MQTT.MyMqttClient;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.ResolvableApiException;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsRequest;
+import com.google.android.gms.location.LocationSettingsResponse;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -35,6 +47,8 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
@@ -68,7 +82,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     GoogleMap googleMap;
     //MQTT
     private MyMqttClient myMQTTClient;
-
     //搜索栏
     private SearchView mSearchView = null;
 
@@ -79,21 +92,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         //谷歌地图视图
         mapView = findViewById(R.id.mapView);
         //搜索栏
-        //TODO:使用搜索框后，光标一直在搜索框上，mapView无法回到自己的位置
         mSearchView = (SearchView) findViewById(R.id.searchView);
         mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String s) {
-                if(s!=null){
-                    if(isNumber(s)){
+                if (s != null) {
+                    if (isNumber(s)) {
                         //搜索的是数字
-                    }else {
+                    } else {
                         //搜索的是字符
                         //Geocoder：根据经纬度获取详细地址信息 / 根据详细地址获取经纬度信息
                         Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
                         try {
-                            List<Address>addressList = geocoder.getFromLocationName(s,1);
-                            if(addressList.size() > 0){
+                            List<Address> addressList = geocoder.getFromLocationName(s, 1);
+                            if (addressList.size() > 0) {
                                 LatLng latLng = new LatLng(addressList.get(0).getLatitude(), addressList.get(0).getLongitude());
                                 MarkerOptions markerOptions = new MarkerOptions();
                                 markerOptions.title("Search Position");
@@ -118,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        checkGPS();
         checkPermission();
         if (isPermissionGranter) {
             if (checkGooglePlayServices()) {
@@ -133,7 +146,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         myMQTTClient.start();
         //订阅/World这个主题
         myMQTTClient.subTopic("TrashCanPub");
-        myMQTTClient.publishMessage("testtopic/1","安卓客户端连接测试",0);
+        myMQTTClient.publishMessage("testtopic/1", "安卓客户端连接测试", 0);
         /* -------------------------------------------------------------------------------------- */
         //使用EventBus与线程交流
         //TODO：也可以使用handler
@@ -141,6 +154,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        https://blog.csdn.net/android410223Sun/article/details/123183448
         EventBus.getDefault().register(this);
     }
+
     /**
      * 判断是否为数字
      */
@@ -148,7 +162,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         try {
             Integer.parseInt(str);
             return true;
-        } catch(Exception e){
+        } catch (Exception e) {
             return false;
         }
     }
@@ -163,31 +177,39 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String s) {
         //TODO:此处需考虑JSON损坏，转换失败的情况
-        //[{"Id":1,"Distance":67,"Humidity":67,"Temperature":67,"Latitude":52.445978,"Longitude":-1.935167},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156}]
-        JSONArray jsonArray;
-        try{
-            jsonArray = new JSONArray(s);
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObj = null;
-                try {
-                    jsonObj = jsonArray.getJSONObject(i);
+        //{"sender":"myMqttClient","dataType":"allTrashCanData","payload":[{"Id":1,"Distance":67,"Humidity":67,"Temperature":67,"Latitude":52.445978,"Longitude":-1.935167},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156}]}
+        JSONObject jsonData;
+        try {
+            jsonData = new JSONObject(s);
+            String sender = jsonData.getString("sender");
+            String dataType = jsonData.getString("dataType");
+            //接收到的JSON数据为，全部垃圾桶状态数据
+            if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
+                String payload = jsonData.getString("payload");
+                JSONArray jsonArray = new JSONArray(payload);
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObj = null;
+                    try {
+                        jsonObj = jsonArray.getJSONObject(i);
 //                    int id = jsonObj.getInt("Id");
 //                    int distance = jsonObj.getInt("Distance");
 //                    Toast.makeText(MainActivity.this, "id和距离为："+id+" "+distance, Toast.LENGTH_SHORT).show();
 
-                    LatLng latLng = new LatLng(jsonObj.getDouble("Latitude"), jsonObj.getDouble("Longitude"));
-                    MarkerOptions markerOptions = new MarkerOptions();
-                    markerOptions.title("Trash Can "+jsonObj.getInt("Id"));
-                    markerOptions.position(latLng);
-                    googleMap.addMarker(markerOptions);
+                        LatLng latLng = new LatLng(jsonObj.getDouble("Latitude"), jsonObj.getDouble("Longitude"));
+                        MarkerOptions markerOptions = new MarkerOptions();
+                        markerOptions.title("Trash Can " + jsonObj.getInt("Id"));
+                        markerOptions.position(latLng);
+                        googleMap.addMarker(markerOptions);
 
-                } catch (JSONException e) {
-                    Toast.makeText(MainActivity.this, "JSON OBJECt转换出错 :"+e.getMessage(), Toast.LENGTH_SHORT).show();
-                    throw new RuntimeException(e);
+                    } catch (JSONException e) {
+                        Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        throw new RuntimeException(e);
+                    }
                 }
             }
-        }catch (Exception e){
-            Toast.makeText(MainActivity.this, "JSON ARRAY转换出错 :"+e.getMessage(), Toast.LENGTH_SHORT).show();
+
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -276,6 +298,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
         googleMap = map;
+
         LatLng latLng = new LatLng(52.45092015708054, -1.930555058272646);
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.title("UOB");
@@ -299,6 +322,34 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
         googleMap.setMyLocationEnabled(true);
+    }
+
+    /***
+     * 检查GPS是否开启
+     */
+    private void checkGPS(){
+        LocationManager locationManager
+                = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        boolean gps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        if(!gps){
+            //TODO：此处dialog不显示且会黑屏，可能是未进入应用界面的问题
+            Toast.makeText(MainActivity.this, "GPS不可用,请开启GPS", Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
+            startActivity(intent);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == 101){
+            if(requestCode == RESULT_OK){
+                Toast.makeText(MainActivity.this, "now GPS is enable", Toast.LENGTH_SHORT).show();
+            }
+            if(requestCode == RESULT_CANCELED){
+                Toast.makeText(MainActivity.this, "denied GPS enable", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     @Override
