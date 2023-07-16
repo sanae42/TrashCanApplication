@@ -2,9 +2,13 @@ package com.example.trashcanapplication;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -27,6 +31,10 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.provider.Settings;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.LinearLayout;
 import android.widget.SearchView;
 import android.widget.Toast;
 
@@ -46,9 +54,11 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.material.navigation.NavigationView;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
@@ -66,6 +76,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -84,15 +95,72 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MyMqttClient myMQTTClient;
     //搜索栏
     private SearchView mSearchView = null;
+    //    侧边栏
+    private DrawerLayout mDrawerLayout;
+    //  侧边栏头部布局
+    private View headview;
+    //长按位置信息窗口显示详情
+    private LinearLayout locationInfoLinearLayout;
+
+    //垃圾桶信息列表
+    private List<TrashCanBean> trashCanList = new ArrayList();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        initiateView();
+
+        checkGPS();
+        checkPermission();
+        if (isPermissionGranter) {
+            if (checkGooglePlayServices()) {
+                mapView.getMapAsync(this);
+                mapView.onCreate(savedInstanceState);
+            } else {
+                Toast.makeText(MainActivity.this, "google play 服务不可用", Toast.LENGTH_SHORT).show();
+            }
+        }
+        /* -------------------------------------------------------------------------------------- */
+        myMQTTClient = MyMqttClient.getInstance();
+        //初始化连接
+        myMQTTClient.start();
+        //订阅/World这个主题
+        myMQTTClient.subTopic("TrashCanPub");
+        myMQTTClient.publishMessage("testtopic/1", "安卓客户端连接测试", 0);
+        /* -------------------------------------------------------------------------------------- */
+        //使用EventBus与线程交流
+        //TODO：也可以使用handler
+//        https://blog.csdn.net/x97666/article/details/125172129
+//        https://blog.csdn.net/android410223Sun/article/details/123183448
+        EventBus.getDefault().register(this);
+    }
+
+    /**
+     * 初始化控件
+     */
+    private void initiateView(){
         //谷歌地图视图
         mapView = findViewById(R.id.mapView);
         //搜索栏
         mSearchView = (SearchView) findViewById(R.id.searchView);
+        //去除搜索栏底部横线
+        if (mSearchView != null) {
+            try {        //--拿到字节码
+                Class<?> argClass = mSearchView.getClass();
+                //--指定某个私有属性,mSearchPlate是搜索框父布局的名字
+                Field ownField = argClass.getDeclaredField("mSearchPlate");
+                //--暴力反射,只有暴力反射才能拿到私有属性
+                ownField.setAccessible(true);
+                View mView = (View) ownField.get(mSearchView);
+                //--设置背景
+                mView.setBackgroundColor(getColor(R.color.transparent));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        //设置搜索栏监听
         mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String s) {
@@ -121,7 +189,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     }
                 }
 
-                return false;
+                return true;
             }
 
             @Override
@@ -129,30 +197,73 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false;
             }
         });
+        //长按位置信息窗口显示详情
+        locationInfoLinearLayout = (LinearLayout) findViewById(R.id.locationInfo);
 
-        checkGPS();
-        checkPermission();
-        if (isPermissionGranter) {
-            if (checkGooglePlayServices()) {
-                mapView.getMapAsync(this);
-                mapView.onCreate(savedInstanceState);
-            } else {
-                Toast.makeText(MainActivity.this, "google play 服务不可用", Toast.LENGTH_SHORT).show();
-            }
+        //        导航条
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+//        设置actionbar相同功能
+        setSupportActionBar(toolbar);
+
+        //    侧边栏布局
+        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
+        //   获取actionbar实例，设置actionbar（即toolbar）最左侧按钮功能，点击唤出侧边栏
+        ActionBar actionBar = getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(true);
+            actionBar.setHomeAsUpIndicator(R.drawable.baseline_menu_24);
+            actionBar.setDisplayShowTitleEnabled(false);
         }
-        /* -------------------------------------------------------------------------------------- */
-        myMQTTClient = MyMqttClient.getInstance();
-        //初始化连接
-        myMQTTClient.start();
-        //订阅/World这个主题
-        myMQTTClient.subTopic("TrashCanPub");
-        myMQTTClient.publishMessage("testtopic/1", "安卓客户端连接测试", 0);
-        /* -------------------------------------------------------------------------------------- */
-        //使用EventBus与线程交流
-        //TODO：也可以使用handler
-//        https://blog.csdn.net/x97666/article/details/125172129
-//        https://blog.csdn.net/android410223Sun/article/details/123183448
-        EventBus.getDefault().register(this);
+        //  设置NavigationView布局
+        NavigationView navView = (NavigationView) findViewById(R.id.nav_view);
+        navView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
+            @Override
+            public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+                int id = item.getItemId();
+                if(id == R.id.nav_chat){
+                    Toast.makeText(MainActivity.this, "点击了nav_chat", Toast.LENGTH_SHORT).show();
+                }
+                if(id == R.id.nav_user){
+                    Toast.makeText(MainActivity.this, "点击了nav_user", Toast.LENGTH_SHORT).show();
+                }
+                if(id == R.id.nav_setting){
+                    Toast.makeText(MainActivity.this, "点击了nav_setting", Toast.LENGTH_SHORT).show();
+                }
+                if(id == R.id.nav_more){
+                    Toast.makeText(MainActivity.this, "点击了nav_more", Toast.LENGTH_SHORT).show();
+                }
+                return true;
+            }
+        });
+
+        headview=navView.inflateHeaderView(R.layout.nav_header);
+    }
+
+    /**
+     * 菜单按键监听，此处菜单即toolbar上一系列按键
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        //开启侧边栏
+        if(id == android.R.id.home){
+            mDrawerLayout.openDrawer(GravityCompat.START);
+        }
+        if(id == R.id.button1){
+            Toast.makeText(MainActivity.this, "点击了button1", Toast.LENGTH_SHORT).show();
+        }
+        if(id == R.id.button2){
+            Toast.makeText(MainActivity.this, "点击了button2", Toast.LENGTH_SHORT).show();
+        }
+        return true;
+    }
+
+    /**
+     * 菜单创建
+     */
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.toolbar, menu);
+        return true;
     }
 
     /**
@@ -187,20 +298,37 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
                 String payload = jsonData.getString("payload");
                 JSONArray jsonArray = new JSONArray(payload);
+
+                //清空垃圾桶数据表，重新放入数据
+                trashCanList.clear();
+
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObj = null;
                     try {
                         jsonObj = jsonArray.getJSONObject(i);
-//                    int id = jsonObj.getInt("Id");
-//                    int distance = jsonObj.getInt("Distance");
-//                    Toast.makeText(MainActivity.this, "id和距离为："+id+" "+distance, Toast.LENGTH_SHORT).show();
-
-                        LatLng latLng = new LatLng(jsonObj.getDouble("Latitude"), jsonObj.getDouble("Longitude"));
-                        MarkerOptions markerOptions = new MarkerOptions();
-                        markerOptions.title("Trash Can " + jsonObj.getInt("Id"));
-                        markerOptions.position(latLng);
-                        googleMap.addMarker(markerOptions);
-
+                        //将JSONObject的数据放入trashCanBean对象
+                        TrashCanBean trashCanBean = new TrashCanBean();
+                        trashCanBean.setId(jsonObj.getInt("Id"));
+                        trashCanBean.setDistance(jsonObj.getInt("Distance"));
+                        trashCanBean.setHumidity(jsonObj.getInt("Humidity"));
+                        trashCanBean.setTemperature(jsonObj.getInt("Temperature"));
+                        trashCanBean.setLatitude(jsonObj.getDouble("Latitude"));
+                        trashCanBean.setLongitude(jsonObj.getDouble("Longitude"));
+                        //将trashCanBean对象插入trashCanList
+                        trashCanList.add(trashCanBean);
+                        //在地图上标出该点
+                        LatLng latLng = new LatLng(trashCanBean.getLatitude(), trashCanBean.getLongitude());
+                        Marker marker = googleMap.addMarker(
+                                new MarkerOptions()
+                                        .position(latLng)
+                                        .title("Trash Can " + trashCanBean.getId())
+                                        .snippet("distance:"+trashCanBean.getDistance()));
+                        //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                        marker.setTag(trashCanBean);
+//                        MarkerOptions markerOptions = new MarkerOptions();
+//                        markerOptions.title("Trash Can " + trashCanBean.getId());
+//                        markerOptions.position(latLng);
+//                        googleMap.addMarker(markerOptions);
                     } catch (JSONException e) {
                         Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
                         throw new RuntimeException(e);
@@ -299,6 +427,37 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(@NonNull GoogleMap map) {
         googleMap = map;
 
+        // Set a listener for marker click.
+        map.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(@NonNull Marker marker) {
+                marker.showInfoWindow();
+//                marker.getTag();
+                return true;
+            }
+        });
+
+        map.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
+            @Override
+            public void onInfoWindowClick(@NonNull Marker marker) {
+
+            }
+        });
+
+        map.setOnInfoWindowLongClickListener(new GoogleMap.OnInfoWindowLongClickListener() {
+            @Override
+            public void onInfoWindowLongClick(@NonNull Marker marker) {
+                locationInfoLinearLayout.setVisibility(View.VISIBLE);
+            }
+        });
+
+        map.setOnInfoWindowCloseListener(new GoogleMap.OnInfoWindowCloseListener() {
+            @Override
+            public void onInfoWindowClose(@NonNull Marker marker) {
+                locationInfoLinearLayout.setVisibility(View.GONE);
+            }
+        });
+
         LatLng latLng = new LatLng(52.45092015708054, -1.930555058272646);
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.title("UOB");
@@ -336,19 +495,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             Toast.makeText(MainActivity.this, "GPS不可用,请开启GPS", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             startActivity(intent);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if(requestCode == 101){
-            if(requestCode == RESULT_OK){
-                Toast.makeText(MainActivity.this, "now GPS is enable", Toast.LENGTH_SHORT).show();
-            }
-            if(requestCode == RESULT_CANCELED){
-                Toast.makeText(MainActivity.this, "denied GPS enable", Toast.LENGTH_SHORT).show();
-            }
         }
     }
 
