@@ -21,6 +21,7 @@ import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -53,6 +54,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -104,6 +106,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     //垃圾桶信息列表
     private List<TrashCanBean> trashCanList = new ArrayList();
+    //地图标点列表
+    private List<Marker> markerList = new ArrayList();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,6 +171,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (s != null) {
                     if (isNumber(s)) {
                         //搜索的是数字
+                        int num = Integer.parseInt(s);
+                        boolean ifFind = false;
+                        for(Marker marker: markerList){
+                            //从所有marker中找到所需marker，移动到对应位置，并显示对应信息窗口
+                            TrashCanBean bean = (TrashCanBean)marker.getTag();
+                            if(bean .getId() == num){
+                                LatLng latLng = new LatLng(bean.getLatitude(), bean.getLongitude());
+                                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
+                                googleMap.animateCamera(cameraUpdate);
+                                marker.showInfoWindow();
+
+                                ifFind = true;
+                                break;
+                            }
+                        }
+                        if(!ifFind){
+                            Toast.makeText(MainActivity.this, "未找到垃圾桶："+num, Toast.LENGTH_SHORT).show();
+                        }
                     } else {
                         //搜索的是字符
                         //Geocoder：根据经纬度获取详细地址信息 / 根据详细地址获取经纬度信息
@@ -301,6 +323,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 //清空垃圾桶数据表，重新放入数据
                 trashCanList.clear();
+                //清空地图标记列表
+                markerList.clear();
+                //清除地图标记
+                googleMap.clear();
 
                 for (int i = 0; i < jsonArray.length(); i++) {
                     JSONObject jsonObj = null;
@@ -325,6 +351,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                         .snippet("distance:"+trashCanBean.getDistance()));
                         //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
                         marker.setTag(trashCanBean);
+                        markerList.add(marker);
+
 //                        MarkerOptions markerOptions = new MarkerOptions();
 //                        markerOptions.title("Trash Can " + trashCanBean.getId());
 //                        markerOptions.position(latLng);
@@ -433,7 +461,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public boolean onMarkerClick(@NonNull Marker marker) {
                 marker.showInfoWindow();
 //                marker.getTag();
-                return true;
+                return false;
             }
         });
 
@@ -458,14 +486,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
-        LatLng latLng = new LatLng(52.45092015708054, -1.930555058272646);
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.title("UOB");
-        markerOptions.position(latLng);
-        googleMap.addMarker(markerOptions);
-        // 移动相机视角
-        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
-        googleMap.animateCamera(cameraUpdate);
+//        LatLng latLng = new LatLng(52.45092015708054, -1.930555058272646);
+//        MarkerOptions markerOptions = new MarkerOptions();
+//        markerOptions.title("UOB");
+//        markerOptions.position(latLng);
+//        googleMap.addMarker(markerOptions);
+//        // 移动相机视角
+//        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
+//        googleMap.animateCamera(cameraUpdate);
         // 缩放按钮
         googleMap.getUiSettings().setZoomControlsEnabled(true);
         googleMap.getUiSettings().setZoomGesturesEnabled(true);
@@ -481,6 +509,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             return;
         }
         googleMap.setMyLocationEnabled(true);
+        //显示罗盘和导航toolbar
+        googleMap.getUiSettings().setCompassEnabled(true);
+        googleMap.getUiSettings().setMapToolbarEnabled(true);
+
+        // 移动相机视角到当前位置
+        LocationManager mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE); // 位置
+        Location mlocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER); // 网络
+        LatLng latLng = new LatLng(mlocation.getLatitude(), mlocation.getLongitude());
+        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
+        googleMap.animateCamera(cameraUpdate);
     }
 
     /***
