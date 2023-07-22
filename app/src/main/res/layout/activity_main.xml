@@ -98,14 +98,35 @@
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:id="@+id/locationInfo"
+                                android:orientation="vertical"
                                 android:visibility="gone">
-                                <TextView
-                                    android:layout_width="wrap_content"
+                                <RelativeLayout
+                                    android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:layout_margin="10dp"
-                                    android:text="位置信息显示测试"
-                                    android:id="@+id/locationInfoText">
-                                </TextView>
+                                    android:orientation="horizontal">
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_margin="10dp"
+                                        android:text="位置信息显示测试"
+                                        android:id="@+id/locationInfoText">
+                                    </TextView>
+                                    <Spinner
+                                        android:id="@+id/action_bar_spinner"
+                                        android:layout_marginRight="10dp"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_centerVertical="true"
+                                        android:layout_alignParentRight="true">
+
+                                    </Spinner>
+                                </RelativeLayout>
+
+                                <com.github.mikephil.charting.charts.LineChart
+                                    android:id="@+id/line_chart"
+                                    android:layout_width="match_parent"
+                                    android:layout_marginTop="20dp"
+                                    android:layout_height="200dp" />
                             </LinearLayout>
 
                         </LinearLayout>

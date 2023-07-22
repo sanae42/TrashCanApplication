@@ -1,5 +1,7 @@
 package com.example.trashcanapplication;
 
+import java.util.Date;
+
 public class TrashCanBean {
     private int Id;
     private int Distance;
@@ -8,7 +10,12 @@ public class TrashCanBean {
     private double Latitude;
     private double Longitude;
 
-    public double getId() {
+    private int Depth;
+    private int EstimatedTime;
+    private int Variance;
+    private Date LastEmptyTime;
+
+    public int getId() {
         return Id;
     }
 
@@ -30,6 +37,22 @@ public class TrashCanBean {
 
     public double getLongitude() {
         return Longitude;
+    }
+
+    public int getDepth() {
+        return Depth;
+    }
+
+    public int getEstimatedTime() {
+        return EstimatedTime;
+    }
+
+    public int getVariance() {
+        return Variance;
+    }
+
+    public Date getLastEmptyTime() {
+        return LastEmptyTime;
     }
 
     public void setId(int id) {
@@ -54,5 +77,21 @@ public class TrashCanBean {
 
     public void setLongitude(double longitude) {
         Longitude = longitude;
+    }
+
+    public void setDepth(int depth) {
+        Depth = depth;
+    }
+
+    public void setEstimatedTime(int estimatedTime) {
+        EstimatedTime = estimatedTime;
+    }
+
+    public void setVariance(int variance) {
+        Variance = variance;
+    }
+
+    public void setLastEmptyTime(Date lastEmptyTime) {
+        LastEmptyTime = lastEmptyTime;
     }
 }

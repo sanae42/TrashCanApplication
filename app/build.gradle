@@ -78,7 +78,8 @@ dependencies {
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
     //eventbus
     implementation 'org.greenrobot:eventbus:3.0.0'
-    //
-
+    //图表插件
+    //https://blog.csdn.net/qq_29848853/article/details/130868720
+    implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
 
 }
