@@ -2,4 +2,10 @@
     <string name="app_name">TrashCanApplication</string>
     <string name="title_activity_maps">MapsActivity</string>
     <string name="title_activity_main">MainActivity</string>
+
+    <string-array name="planets_array">
+        <item>Trash Amount</item>
+        <item>Temperature</item>
+        <item>Humidity</item>
+    </string-array>
 </resources>

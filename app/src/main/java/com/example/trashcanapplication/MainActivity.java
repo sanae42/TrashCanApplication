@@ -37,6 +37,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
@@ -99,6 +100,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -125,13 +127,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DrawerLayout mDrawerLayout;
     //  侧边栏头部布局
     private View headview;
-    //长按位置信息窗口显示详情
-    private LinearLayout locationInfoLinearLayout;
-    //下拉选择器
-    private Spinner spinner;
-
-    //折线图
-    private LineChart lineChart;
 
     //垃圾桶信息列表
     private List<TrashCanBean> trashCanList = new ArrayList();
@@ -249,8 +244,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false;
             }
         });
-        //长按位置信息窗口显示详情
-        locationInfoLinearLayout = (LinearLayout) findViewById(R.id.locationInfo);
 
         //        导航条
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -290,111 +283,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         headview=navView.inflateHeaderView(R.layout.nav_header);
 
-        spinner = findViewById(R.id.action_bar_spinner);
-//        String[] spinnerStr = {"垃圾量","温度","湿度"};
-//        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>()
-
-        //折线图表组件
-        lineChart = findViewById(R.id.line_chart);
-        //初始化图表
-        initChart();
     }
 
-
-    //初始化图表
-    private void initChart(){
-        //点击监听
-        //chart.setOnChartValueSelectedListener(this);
-        //绘制网格线
-        lineChart.setDrawGridBackground(false);
-
-        //描述文本
-        lineChart.getDescription().setEnabled(false);
-
-        //是否可以触摸
-        lineChart.setTouchEnabled(true);
-
-        //启用缩放和拖动
-        lineChart.setDragEnabled(true);
-        lineChart.setScaleEnabled(true);
-
-        // 如果禁用，可以分别在x轴和y轴上进行缩放
-        lineChart.setPinchZoom(true);
-
-        //设置背景色
-        // chart.setBackgroundColor(Color.GRAY);
-
-        //创建自定义MarkerView（扩展MarkerView）并指定布局
-        //MyMarkerView mv = new MyMarkerView(this, R.layout.custom_marker_view);
-        //mv.setChartView(chart); // For bounds control
-        //chart.setMarker(mv); // Set the marker to the chart
-//
-//        //配置x坐标数据
-//        XAxis xl = lineChart.getXAxis();
-//        xl.setAvoidFirstLastClipping(true);
-//        xl.setAxisMinimum(0f);
-
-//    https://blog.csdn.net/qq_29848853/article/details/130868720
-//    file:///C:/Users/admin/Downloads/android%E6%97%B6%E9%97%B4%E5%9D%90%E6%A0%87%E6%8A%98%E7%BA%BF%E5%9B%BEMPAndr%20(1).html
-        //TODO：改写横坐标格式，但是这种方法有可能会有重复的横坐标
-        SimpleDateFormat mFormat = new SimpleDateFormat("M月d");
-        lineChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter() {
-            @Override
-            public String getFormattedValue(float value) {
-                return mFormat.format(new Date((long) value));
-            }
-        });
-//
-        //配置y坐标左边数据
-        YAxis rightAxis = lineChart.getAxisRight();
-        rightAxis.setInverted(true);
-        rightAxis.setAxisMinimum(0f); // this replaces setStartAtZero(true)
-//
-        //关闭y坐标左边数据
-        YAxis leftAxis = lineChart.getAxisLeft();
-        leftAxis.setEnabled(false);
-
-//        setData();
-    }
-
-
-    //TODO:在折线图旁边加一个选择器，选择展示当前垃圾桶的垃圾量或其他数据
-    private void setChartData(JSONObject jsonData) {
-        try {
-            int trashCanId = jsonData.getInt("TrashCanId");
-            String payload = jsonData.getString("payload");
-            JSONArray jsonArray = new JSONArray(payload);
-
-            ArrayList<Entry> entries = new ArrayList<>();
-
-            for (int i = 0; i < jsonArray.length(); i++) {
-                JSONObject jsonObj = jsonArray.getJSONObject(i);
-//                    TrashCanBean trashCanBean = new TrashCanBean();
-//                    trashCanBean.setId(jsonObj.getInt("Id"));
-//                    trashCanBean.setDistance(jsonObj.getInt("Distance"));
-//                    trashCanBean.setHumidity(jsonObj.getInt("Humidity"));
-//                    trashCanBean.setTemperature(jsonObj.getInt("Temperature"));
-
-                Long timeStamp = Long.parseLong(jsonObj.getJSONObject("DateTime").getString("time"));
-//                    timeStamp /= 1000;
-
-                float xVal = (timeStamp);
-                float yVal = (float) (jsonObj.getInt("Distance"));
-                entries.add(new Entry(xVal, yVal));
-
-            }
-            //通过x坐标值排序
-            Collections.sort(entries, new EntryXComparator());
-            LineDataSet set1 = new LineDataSet(entries, "DataSet 1");
-            //使用数据集创建数据对象
-            LineData data = new LineData(set1);
-            lineChart.setData(data);
-            //刷新绘图
-            lineChart.invalidate();
-        } catch (JSONException e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * 菜单按键监听，此处菜单即toolbar上一系列按键
@@ -454,70 +344,76 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             //接收到的JSON数据为，全部垃圾桶状态数据
             // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
             if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
-                String payload = jsonData.getString("payload");
-                JSONArray jsonArray = new JSONArray(payload);
+                refreshMainActivityViewAfterReceiveJSONData(jsonData);
+            }
 
-                //清空垃圾桶数据表，重新放入数据
-                trashCanList.clear();
-                //清空地图标记列表
-                markerList.clear();
-                //清除地图标记
-                //TODO: marker刷新会导致打开的infowindow关闭
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /**
+     * 收到JSON数据后刷新主活动相关布局
+     */
+    private void refreshMainActivityViewAfterReceiveJSONData(JSONObject jsonData){
+        String payload = null;
+        try {
+            payload = jsonData.getString("payload");
+            JSONArray jsonArray = new JSONArray(payload);
+
+            //清空垃圾桶数据表，重新放入数据
+            trashCanList.clear();
+            //清空地图标记列表
+            markerList.clear();
+            //清除地图标记
+            //TODO: marker刷新会导致打开的infowindow关闭
 //                googleMap.clear();
 
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject jsonObj = null;
-                    try {
-                        jsonObj = jsonArray.getJSONObject(i);
-                        //将JSONObject的数据放入trashCanBean对象
-                        TrashCanBean trashCanBean = new TrashCanBean();
-                        trashCanBean.setId(jsonObj.getInt("Id"));
-                        trashCanBean.setDistance(jsonObj.getInt("Distance"));
-                        trashCanBean.setHumidity(jsonObj.getInt("Humidity"));
-                        trashCanBean.setTemperature(jsonObj.getInt("Temperature"));
-                        trashCanBean.setLatitude(jsonObj.getDouble("Latitude"));
-                        trashCanBean.setLongitude(jsonObj.getDouble("Longitude"));
+            for (int i = 0; i < jsonArray.length(); i++) {
+                JSONObject jsonObj = null;
+                try {
+                    jsonObj = jsonArray.getJSONObject(i);
+                    //将JSONObject的数据放入trashCanBean对象
+                    TrashCanBean trashCanBean = new TrashCanBean();
+                    trashCanBean.setId(jsonObj.getInt("Id"));
+                    trashCanBean.setDistance(jsonObj.getInt("Distance"));
+                    trashCanBean.setHumidity(jsonObj.getInt("Humidity"));
+                    trashCanBean.setTemperature(jsonObj.getInt("Temperature"));
+                    trashCanBean.setLatitude(jsonObj.getDouble("Latitude"));
+                    trashCanBean.setLongitude(jsonObj.getDouble("Longitude"));
 
-                        trashCanBean.setDepth(jsonObj.getInt("Depth"));
-                        trashCanBean.setEstimatedTime(jsonObj.getInt("EstimatedTime"));
-                        trashCanBean.setVariance(jsonObj.getInt("Variance"));
-                        //时间戳转date
-                        Long timeStamp = Long.parseLong(jsonObj.getJSONObject("LastEmptyTime").getString("time"));
-                        Date LastEmptyTime = new Date(timeStamp);
-                        trashCanBean.setLastEmptyTime(LastEmptyTime);
+                    trashCanBean.setDepth(jsonObj.getInt("Depth"));
+                    trashCanBean.setEstimatedTime(jsonObj.getInt("EstimatedTime"));
+                    trashCanBean.setVariance(jsonObj.getInt("Variance"));
+                    //时间戳转date
+                    Long timeStamp = Long.parseLong(jsonObj.getJSONObject("LastEmptyTime").getString("time"));
+                    Date LastEmptyTime = new Date(timeStamp);
+                    trashCanBean.setLastEmptyTime(LastEmptyTime);
 
-                        //将trashCanBean对象插入trashCanList
-                        trashCanList.add(trashCanBean);
-                        //在地图上标出该点
-                        LatLng latLng = new LatLng(trashCanBean.getLatitude(), trashCanBean.getLongitude());
-                        Marker marker = googleMap.addMarker(
-                                new MarkerOptions()
-                                        .position(latLng)
-                                        .title("Trash Can " + (int)trashCanBean.getId())
-                                        .snippet("distance:"+trashCanBean.getDistance()));
-                        //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
-                        marker.setTag(trashCanBean);
-                        markerList.add(marker);
+                    //将trashCanBean对象插入trashCanList
+                    trashCanList.add(trashCanBean);
+                    //在地图上标出该点
+                    LatLng latLng = new LatLng(trashCanBean.getLatitude(), trashCanBean.getLongitude());
+                    Marker marker = googleMap.addMarker(
+                            new MarkerOptions()
+                                    .position(latLng)
+                                    .title("Trash Can " + (int)trashCanBean.getId())
+                                    .snippet("distance:"+trashCanBean.getDistance()));
+                    //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                    marker.setTag(trashCanBean);
+                    markerList.add(marker);
 
 //                        MarkerOptions markerOptions = new MarkerOptions();
 //                        markerOptions.title("Trash Can " + trashCanBean.getId());
 //                        markerOptions.position(latLng);
 //                        googleMap.addMarker(markerOptions);
-                    } catch (JSONException e) {
-                        Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        throw new RuntimeException(e);
-                    }
+                } catch (JSONException e) {
+                    Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    throw new RuntimeException(e);
                 }
             }
-            //接收到的JSON数据为，某个垃圾桶的历史数据
-            if (sender.equals("myMqttClient") && dataType.equals("thisTrashCanData")){
-
-                setChartData(jsonData);
-
-            }
-
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -620,27 +516,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setOnInfoWindowClickListener(new GoogleMap.OnInfoWindowClickListener() {
             @Override
             public void onInfoWindowClick(@NonNull Marker marker) {
-
+                Intent intent = new Intent();
+                intent.setClass(getApplicationContext(), TrashCanDetailActivity.class);
+                TrashCanBean bean = (TrashCanBean) marker.getTag();
+                intent.putExtra("TrashCanId",bean.getId());
+                intent.putExtra("Depth",bean.getDepth());
+//                Toast.makeText(MainActivity.this, "活动跳转传参:"+bean.getId(), Toast.LENGTH_SHORT).show();
+                startActivity(intent);
             }
         });
 
         map.setOnInfoWindowLongClickListener(new GoogleMap.OnInfoWindowLongClickListener() {
             @Override
             public void onInfoWindowLongClick(@NonNull Marker marker) {
-                locationInfoLinearLayout.setVisibility(View.VISIBLE);
-
-                //向服务器发送垃圾桶数据请求
-                JSONObject jsonData = new JSONObject();
-                TrashCanBean bean = (TrashCanBean) marker.getTag();
-                try {
-                    jsonData.put("dataType", "trashCanDataRequest");
-                    jsonData.put("Id", ClientId );
-                    jsonData.put("TrashCanId", bean.getId());
-                } catch (JSONException e) {
-                    throw new RuntimeException(e);
-                }
-                MyMqttClient myMQTTClient = MyMqttClient.getInstance();
-                myMQTTClient.publishMessage("MQTTServerSub",jsonData.toString(),0);
 
             }
         });
@@ -648,7 +536,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         map.setOnInfoWindowCloseListener(new GoogleMap.OnInfoWindowCloseListener() {
             @Override
             public void onInfoWindowClose(@NonNull Marker marker) {
-                locationInfoLinearLayout.setVisibility(View.GONE);
+
             }
         });
 
@@ -660,13 +548,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public View getInfoContents(@NonNull Marker marker) {
                 View view;
                 view = View.inflate(getApplicationContext(), R.layout.info_window, null);
-                TextView title = view.findViewById(R.id.title);
-                TextView content = view.findViewById(R.id.content);
+                TextView title = view.findViewById(R.id.info_window_title);
+                TextView content = view.findViewById(R.id.info_window_content);
                 TrashCanBean bean = (TrashCanBean)marker.getTag();
                 title.setText("TrashCan:"+bean.getId());
                 String str = "TrashLevel:"+(int)((double)(bean.getDepth()-bean.getDistance())/(double)bean.getDepth()*100);
                 str += "%\n"+"Temperature:"+bean.getTemperature()+"°C";
                 content.setText(str);
+
+                Button button = view.findViewById(R.id.info_window_button);
+                button.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+//                        Intent intent = new Intent();
+//                        intent.setClass(getApplicationContext(), TrashCanDetailActivity.class);
+//                        TrashCanBean bean = (TrashCanBean) marker.getTag();
+//                        intent.putExtra("TrashCanId",bean.getId());
+//                        startActivity(intent);
+                    }
+                });
+
 
                 return view;
             }

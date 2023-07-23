@@ -7,7 +7,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
         <TextView
-            android:id="@+id/title"
+            android:id="@+id/info_window_title"
             android:layout_gravity="center"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -17,13 +17,24 @@
 
         </TextView>
         <TextView
-            android:id="@+id/content"
+            android:id="@+id/info_window_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="11dp"
             android:text="test">
 
         </TextView>
+
+        <Button
+            android:id="@+id/info_window_button"
+            android:layout_width="wrap_content"
+            android:layout_height="25dp"
+            android:layout_gravity="center"
+            android:background="#00000000"
+            android:text="view more..."
+            android:textSize="11dp">
+
+        </Button>
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
