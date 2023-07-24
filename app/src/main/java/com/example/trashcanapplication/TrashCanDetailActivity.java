@@ -4,8 +4,11 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -14,13 +17,23 @@ import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
+import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.PercentFormatter;
+import com.github.mikephil.charting.highlight.Highlight;
+import com.github.mikephil.charting.listener.OnChartValueSelectedListener;
 import com.github.mikephil.charting.utils.EntryXComparator;
+import com.github.mikephil.charting.utils.MPPointF;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -50,7 +63,10 @@ public class TrashCanDetailActivity extends AppCompatActivity {
     private Spinner spinner;
     //折线图
     private LineChart lineChart;
+    //饼图
+    private PieChart pieChart;
 
+    @SuppressLint("MissingInflatedId")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,7 +101,7 @@ public class TrashCanDetailActivity extends AppCompatActivity {
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
 
                 if(jsonData!=null){
-                    setChartData(adapterView.getSelectedItem().toString());
+                    setLineChartData(adapterView.getSelectedItem().toString());
                 }
             }
 
@@ -98,7 +114,12 @@ public class TrashCanDetailActivity extends AppCompatActivity {
         //折线图表组件
         lineChart = findViewById(R.id.line_chart);
         //初始化图表
-        initChart();
+        initLineChart();
+        //饼状图表组件
+        pieChart = findViewById(R.id.pie_chart);
+        //初始化图表
+        initPieChart();
+
 
         myMQTTClient = MyMqttClient.getInstance();
         //使用EventBus与线程交流
@@ -129,7 +150,9 @@ public class TrashCanDetailActivity extends AppCompatActivity {
             if (sender.equals("myMqttClient") && dataType.equals("thisTrashCanData")){
 
                 jsonData = j;
-                setChartData(spinner.getSelectedItem().toString());
+                setLineChartData(spinner.getSelectedItem().toString());
+                //设置数据
+                setPieChartData();
 
             }
 
@@ -139,7 +162,7 @@ public class TrashCanDetailActivity extends AppCompatActivity {
     }
 
     //初始化图表
-    private void initChart(){
+    private void initLineChart(){
         //点击监听
         //chart.setOnChartValueSelectedListener(this);
         //绘制网格线
@@ -194,7 +217,79 @@ public class TrashCanDetailActivity extends AppCompatActivity {
 //        setData();
     }
 
-    private void setChartData(String SpinnerSelection) {
+    //初始化图表
+    private void initPieChart() {
+        //是否用于百分比数据
+        pieChart.setUsePercentValues(true);
+        pieChart.getDescription().setEnabled(false);
+        pieChart.setExtraOffsets(5, 10, 5, 5);
+
+        pieChart.setDragDecelerationFrictionCoef(0.95f);
+
+        //设置中间文本的字体
+        //chart.setCenterTextTypeface(tfLight);
+        //chart.setCenterText(generateCenterSpannableText());
+
+        //是否绘制中心圆形区域和颜色
+        pieChart.setDrawHoleEnabled(true);
+        pieChart.setHoleColor(Color.WHITE);
+
+        //是否绘制中心边透明区域
+        pieChart.setTransparentCircleColor(Color.WHITE);
+        pieChart.setTransparentCircleAlpha(110);
+
+        //绘制中中心圆，和圆边的边框大小
+        pieChart.setHoleRadius(58f);
+        pieChart.setTransparentCircleRadius(61f);
+
+        //是否绘制中心区域文字
+        pieChart.setDrawCenterText(true);
+
+        //默认旋转角度
+        pieChart.setRotationAngle(0);
+        //通过触摸启用图表的旋转
+        pieChart.setRotationEnabled(true);
+        //触摸进行高亮的突出设置
+        pieChart.setHighlightPerTapEnabled(true);
+
+        //设置单位
+        // chart.setUnit(" €");
+        // chart.setDrawUnitsInChart(true);
+
+        //添加选择侦听器
+        pieChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
+            @Override
+            public void onValueSelected(Entry e, Highlight h) {
+                //选中的扇页
+            }
+
+            @Override
+            public void onNothingSelected() {
+                //未选中的扇页
+            }
+        });
+
+        //动画
+        pieChart.animateY(1400, Easing.EaseInOutQuad);
+        // chart.spin(2000, 0, 360);
+
+        //图例
+        Legend l = pieChart.getLegend();
+        l.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+        l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+        l.setOrientation(Legend.LegendOrientation.VERTICAL);
+        l.setDrawInside(false);
+        l.setXEntrySpace(7f);
+        l.setYEntrySpace(0f);
+        l.setYOffset(0f);
+
+        //标签样式
+        pieChart.setEntryLabelColor(Color.WHITE);
+        //chart.setEntryLabelTypeface(tfRegular);
+        pieChart.setEntryLabelTextSize(12f);
+    }
+
+    private void setLineChartData(String SpinnerSelection) {
         try {
             String payload = jsonData.getString("payload");
             JSONArray jsonArray = new JSONArray(payload);
@@ -205,11 +300,6 @@ public class TrashCanDetailActivity extends AppCompatActivity {
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObj = jsonArray.getJSONObject(i);
-//                    TrashCanBean trashCanBean = new TrashCanBean();
-//                    trashCanBean.setId(jsonObj.getInt("Id"));
-//                    trashCanBean.setDistance(jsonObj.getInt("Distance"));
-//                    trashCanBean.setHumidity(jsonObj.getInt("Humidity"));
-//                    trashCanBean.setTemperature(jsonObj.getInt("Temperature"));
 
                 Long timeStamp = Long.parseLong(jsonObj.getJSONObject("DateTime").getString("time"));
 //                    timeStamp /= 1000;
@@ -239,6 +329,73 @@ public class TrashCanDetailActivity extends AppCompatActivity {
         } catch (JSONException e) {
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void setPieChartData(){
+        //从JSONdata里分析数据
+        Long fullTime = 0L;
+        Long unfullTime = 0L;
+        try {
+            String payload = jsonData.getString("payload");
+            JSONArray jsonArray = new JSONArray(payload);
+
+            Long lastTimeStamp = Long.parseLong(jsonArray.getJSONObject(0).getJSONObject("DateTime").getString("time"));
+            for (int i = 1; i < jsonArray.length(); i++) {
+                JSONObject jsonObj = jsonArray.getJSONObject(i);
+
+                Long thisTimeStamp = Long.parseLong(jsonObj.getJSONObject("DateTime").getString("time"));
+                int distance = jsonObj.getInt("Distance");
+                if((float)(Depth - distance)/(float)Depth > 0.9){
+                    fullTime += thisTimeStamp-lastTimeStamp;
+//                    fullTime++;
+                }else {
+                    unfullTime += thisTimeStamp-lastTimeStamp;
+//                    unfullTime++;
+                }
+
+                lastTimeStamp = thisTimeStamp;
+            }
+        } catch (JSONException e) {
+            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
+        }
+
+        //二维数据的二级数据
+        ArrayList<PieEntry> entries = new ArrayList<>();
+        //new PieEntry(数值，描述，图标icon)第一个
+        entries.add(new PieEntry((float)unfullTime, "unfullTime", null));
+        entries.add(new PieEntry((float)fullTime, "fullTime", null));
+
+        //二维数据的一级数据
+        PieDataSet dataSet = new PieDataSet(entries, "Election Results");
+        //数据配置，是否绘制图标
+        dataSet.setDrawIcons(false);
+        //扇页之间的空白间距
+        dataSet.setSliceSpace(3f);
+        //图标偏移
+        dataSet.setIconsOffset(new MPPointF(0, 40));
+        dataSet.setSelectionShift(5f);
+
+        //添加颜色集合，
+        ArrayList<Integer> colors = new ArrayList<>();
+        //colors.add(ColorTemplate.LIBERTY_COLORS[0]);
+        colors.add(Color.parseColor("#3790A2"));
+        colors.add(Color.parseColor("#37F0A2"));
+        dataSet.setColors(colors);
+        //dataSet.setSelectionShift(0f);
+
+        //设置图表数据
+        PieData data = new PieData(dataSet);
+        data.setValueFormatter(new PercentFormatter());
+        data.setValueTextSize(11f);
+        data.setValueTextColor(Color.WHITE);
+        //data.setValueTypeface(tfLight);
+        pieChart.setData(data);
+
+        //撤消所有高光
+//        pieChart.highlightValues(null);
+
+        //刷新图表UI
+        pieChart.invalidate();
     }
 
     /**

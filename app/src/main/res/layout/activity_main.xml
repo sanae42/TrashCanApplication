@@ -131,13 +131,22 @@
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal"
                                 android:background="@color/gray">
+                                <ImageView
+                                    android:id="@+id/emergency_imageview"
+                                    android:layout_width="80dp"
+                                    android:layout_height="80dp"
+                                    android:layout_marginTop="10dp"
+                                    android:layout_marginLeft="10dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:textSize="16dp"/>
                                 <TextView
+                                    android:id="@+id/emergency_textview"
                                     android:layout_width="match_parent"
-                                    android:layout_height="100dp"
+                                    android:layout_height="wrap_content"
                                     android:layout_margin="10dp"
+                                    android:layout_gravity="center_vertical"
                                     android:text=""
                                     android:textSize="16dp"/>
-
                             </LinearLayout>
 
                         </LinearLayout>
@@ -174,15 +183,38 @@
 
                             </LinearLayout>
                             <LinearLayout
-                                android:layout_width="match_parent"
+                                android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="horizontal"
+                                android:orientation="vertical"
                                 android:background="@color/gray">
+                                <LinearLayout
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:orientation="horizontal">
+                                    <TimePicker
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1">
+
+                                    </TimePicker>
+                                    <DatePicker
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_weight="1">
+
+                                    </DatePicker>
+                                </LinearLayout>
+                                <NumberPicker
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content">
+
+                                </NumberPicker>
+
                                 <TextView
                                     android:layout_width="match_parent"
                                     android:layout_height="100dp"
                                     android:layout_margin="10dp"
-                                    android:text=""
+                                    android:text="1"
                                     android:textSize="16dp"/>
 
                             </LinearLayout>

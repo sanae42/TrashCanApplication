@@ -38,6 +38,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
@@ -120,6 +121,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private MyMqttClient myMQTTClient;
     private static Integer Id = 1;
     private String ClientId = "Android/"+Id;
+
+    JSONObject jsonData;
 
     //搜索栏
     private SearchView mSearchView = null;
@@ -336,15 +339,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMessageEvent(String s) {
         //TODO:此处需考虑JSON损坏，转换失败的情况
         //{"sender":"myMqttClient","dataType":"allTrashCanData","payload":[{"Id":1,"Distance":67,"Humidity":67,"Temperature":67,"Latitude":52.445978,"Longitude":-1.935167},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156}]}
-        JSONObject jsonData;
+        JSONObject j;
         try {
-            jsonData = new JSONObject(s);
-            String sender = jsonData.getString("sender");
-            String dataType = jsonData.getString("dataType");
+            j = new JSONObject(s);
+            String sender = j.getString("sender");
+            String dataType = j.getString("dataType");
             //接收到的JSON数据为，全部垃圾桶状态数据
             // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
             if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
-                refreshMainActivityViewAfterReceiveJSONData(jsonData);
+                jsonData = j;
+                refreshMainActivityViewAfterReceiveJSONData();
             }
 
         } catch (Exception e) {
@@ -355,8 +359,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * 收到JSON数据后刷新主活动相关布局
      */
-    private void refreshMainActivityViewAfterReceiveJSONData(JSONObject jsonData){
+    private void refreshMainActivityViewAfterReceiveJSONData(){
         String payload = null;
+        //地图布局
         try {
             payload = jsonData.getString("payload");
             JSONArray jsonArray = new JSONArray(payload);
@@ -415,6 +420,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
+        //emergency布局
+        ImageView emergencyImageview = findViewById(R.id.emergency_imageview);
+        TextView emergencyTextview = findViewById(R.id.emergency_textview);
+        List<Integer> emergencyIdList = new ArrayList<>();
+        for(TrashCanBean bean:trashCanList){
+            //假定45℃为警报温度
+            if(bean.getTemperature()>45){
+                emergencyIdList.add(bean.getId());
+            }
+        }
+        if(emergencyIdList.size() == 0){
+            emergencyImageview.setImageResource(R.drawable.icon_no_emergency);
+            emergencyTextview.setText("No emergency");
+        }else {
+            emergencyImageview.setImageResource(R.drawable.icon_emergency);
+            String str = "There are " + emergencyIdList.size() + " emergencies:\n";
+            for (int i = 0; i < emergencyIdList.size(); i++){
+                if(i!=0){
+                    str += ",";
+                }
+                str += emergencyIdList.get(i).toString();
+            }
+            emergencyTextview.setText(str);
+        }
+
     }
 
     /**
