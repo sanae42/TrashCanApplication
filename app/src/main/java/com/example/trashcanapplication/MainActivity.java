@@ -14,6 +14,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -32,15 +33,23 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PersistableBundle;
 import android.provider.Settings;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.OnReceiveContentListener;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.NumberPicker;
 import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 import android.widget.SearchView;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -107,6 +116,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -130,6 +141,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DrawerLayout mDrawerLayout;
     //  侧边栏头部布局
     private View headview;
+    RelativeLayout loggedHeaderLayout;
+    RelativeLayout unloggedHeaderLayout;
+    //数字输入框
+    private EditText editText;
+    //进度条窗口
+    private ProgressDialog progressDialog;
 
     //垃圾桶信息列表
     private List<TrashCanBean> trashCanList = new ArrayList();
@@ -167,6 +184,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        https://blog.csdn.net/x97666/article/details/125172129
 //        https://blog.csdn.net/android410223Sun/article/details/123183448
         EventBus.getDefault().register(this);
+
+        try{
+            progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
+        }catch (Exception e){
+            Log.d("进度条窗口闪退", e.getMessage());
+        }
+        Timer timer = new Timer();
+        //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                if(progressDialog.isShowing()){
+                    progressDialog.dismiss();
+                }
+                timer.cancel();
+            }
+        };
+        //6000ms执行一次
+        timer.schedule(task, 6000);
     }
 
     /**
@@ -253,6 +289,33 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        设置actionbar相同功能
         setSupportActionBar(toolbar);
 
+        //数字输入文本框
+        editText = (EditText) findViewById(R.id.trashcans_tobefilled_edittext);
+        editText.setText("0");
+        //只能输入数字和小数点
+        editText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+                if(editText.getText()!=null && editText.getText().toString().length()>0){
+                    refreshPlanView(Double.parseDouble(editText.getText().toString()));
+                }else {
+                    refreshPlanView(0);
+                }
+//                Toast.makeText(MainActivity.this, editText.getText(), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+
         //    侧边栏布局
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         //   获取actionbar实例，设置actionbar（即toolbar）最左侧按钮功能，点击唤出侧边栏
@@ -285,9 +348,55 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         });
 
         headview=navView.inflateHeaderView(R.layout.nav_header);
-
+        loggedHeaderLayout = (RelativeLayout)headview.findViewById(R.id.LoggedHeaderLayout);
+        unloggedHeaderLayout = (RelativeLayout)headview.findViewById(R.id.UnloggedHeaderLayout);
+        Button loginButton = (Button) headview.findViewById(R.id.login_button);
+        loginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent();
+                intent.setClass(getApplicationContext(), MapsActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
+    /**
+     * 根据输入的hour刷新plan布局
+     */
+    public void refreshPlanView(double hour){
+        if(trashCanList==null){
+            return;
+        }
+        List<TrashCanBean> toBeFilledList = new ArrayList<>();
+        for(TrashCanBean bean : trashCanList){
+            double percentage = (double)(bean.getDepth()-bean.getDistance()) / (double)bean.getDepth();
+            //认为0.9为满
+            double time = (double)(0.9-percentage) * bean.getEstimatedTime();
+            double instability = Math.log( 1 + Math.pow(bean.getVariance(), 0.5) );
+            if((double)(0.9-percentage) * bean.getEstimatedTime() - instability < hour){
+                toBeFilledList.add(bean);
+            }
+        }
+        TextView toBeFilledNumberTextView = (TextView) findViewById(R.id.trashcans_tobefilled_number_textview);
+        TextView toBeFilledListTextView = (TextView) findViewById(R.id.trashcans_tobefilled_list_textview);
+        if(toBeFilledList.size() > 0){
+            toBeFilledNumberTextView.setText("it is expected that " + toBeFilledList.size() + " trash cans will be filled :");
+            String str = "";
+            for(int i = 0; i < toBeFilledList.size(); i++){
+                if(i!=0){
+                    str += ", ";
+                }
+                str += toBeFilledList.get(i).getId();
+            }
+            toBeFilledListTextView.setText(str);
+            toBeFilledListTextView.setVisibility(View.VISIBLE);
+        }else {
+            toBeFilledNumberTextView.setText("it is expected that no trash can will be filled");
+            toBeFilledListTextView.setVisibility(View.GONE);
+        }
+
+    }
 
     /**
      * 菜单按键监听，此处菜单即toolbar上一系列按键
@@ -348,7 +457,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
             if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
                 jsonData = j;
-                refreshMainActivityViewAfterReceiveJSONData();
+                refreshMapRelatedViewAfterReceiveJSONData();
+                refreshPlanView(Double.parseDouble(editText.getText().toString()));
+                //加载完成，收起进度条
+                progressDialog.dismiss();
             }
 
         } catch (Exception e) {
@@ -359,7 +471,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     /**
      * 收到JSON数据后刷新主活动相关布局
      */
-    private void refreshMainActivityViewAfterReceiveJSONData(){
+    private void refreshMapRelatedViewAfterReceiveJSONData(){
         String payload = null;
         //地图布局
         try {

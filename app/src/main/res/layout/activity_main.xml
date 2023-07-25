@@ -9,9 +9,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
     <androidx.coordinatorlayout.widget.CoordinatorLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context=".MainActivity">
 
         <com.google.android.material.appbar.AppBarLayout
             android:layout_width="match_parent"
@@ -33,198 +33,229 @@
             app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
-                <LinearLayout
+            <LinearLayout
                 android:orientation="vertical"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content">
-                    <androidx.cardview.widget.CardView
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginBottom="5dp"
+                    app:cardCornerRadius="100dp">
+                    <SearchView
+                        android:id="@+id/searchView"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
-                        android:layout_marginRight="10dp"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginBottom="5dp"
-                        app:cardCornerRadius="100dp">
-                        <SearchView
-                            android:id="@+id/searchView"
+                        android:iconifiedByDefault="false"
+                        android:queryHint="请输入搜索内容" />
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="5dp"
+                    app:cardCornerRadius="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        >
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:iconifiedByDefault="false"
-                            android:queryHint="请输入搜索内容" />
-                    </androidx.cardview.widget.CardView>
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
-                        android:layout_marginRight="10dp"
-                        android:layout_marginTop="5dp"
-                        android:layout_marginBottom="5dp"
-                        app:cardCornerRadius="10dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            >
-                            <LinearLayout
+                            android:orientation="horizontal"
+                            android:background="@color/white">
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@color/white">
-                                <TextView
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_margin="10dp"
-                                    android:text=" map"
-                                    android:drawableLeft="@drawable/baseline_map_24"
-                                    android:fontFamily="sans-serif-condensed"
-                                    android:textSize="24dp"/>
-
-                            </LinearLayout>
-                            <com.example.trashcanapplication.MyMapView
-                                android:layout_width="match_parent"
-                                android:layout_height="300dp">
-
-                                <com.google.android.gms.maps.MapView
-                                    android:id="@+id/mapView"
-                                    android:layout_width="match_parent"
-                                    android:layout_height="match_parent"
-                                    tools:ignore="SpeakableTextPresentCheck" />
-                            </com.example.trashcanapplication.MyMapView>
+                                android:layout_margin="10dp"
+                                android:text=" map"
+                                android:drawableLeft="@drawable/baseline_map_24"
+                                android:fontFamily="sans-serif-condensed"
+                                android:textSize="24dp"/>
 
                         </LinearLayout>
+                        <com.example.trashcanapplication.MyMapView
+                            android:layout_width="match_parent"
+                            android:layout_height="300dp">
 
-                    </androidx.cardview.widget.CardView>
+                            <com.google.android.gms.maps.MapView
+                                android:id="@+id/mapView"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                tools:ignore="SpeakableTextPresentCheck" />
+                        </com.example.trashcanapplication.MyMapView>
 
-                    <androidx.cardview.widget.CardView
+                    </LinearLayout>
+
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="5dp"
+                    app:cardCornerRadius="10dp">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
-                        android:layout_marginRight="10dp"
-                        android:layout_marginTop="5dp"
-                        android:layout_marginBottom="5dp"
-                        app:cardCornerRadius="10dp">
-
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        >
                         <LinearLayout
                             android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            >
-                            <LinearLayout
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:background="@color/white">
+                            <TextView
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@color/white">
-                                <TextView
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_margin="10dp"
-                                    android:text=" emergency"
-                                    android:drawableLeft="@drawable/baseline_notification_important_24"
-                                    android:fontFamily="sans-serif-condensed"
-                                    android:textSize="24dp"/>
+                                android:layout_margin="10dp"
+                                android:text=" emergency"
+                                android:drawableLeft="@drawable/baseline_notification_important_24"
+                                android:fontFamily="sans-serif-condensed"
+                                android:textSize="24dp"/>
 
-                            </LinearLayout>
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:background="@color/gray">
+                            <ImageView
+                                android:id="@+id/emergency_imageview"
+                                android:layout_width="80dp"
+                                android:layout_height="80dp"
+                                android:layout_marginTop="10dp"
+                                android:layout_marginLeft="10dp"
+                                android:layout_marginBottom="10dp"
+                                android:textSize="16dp"/>
+                            <TextView
+                                android:id="@+id/emergency_textview"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="10dp"
+                                android:layout_gravity="center_vertical"
+                                android:text=""
+                                android:textSize="16dp"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginBottom="10dp"
+                    app:cardCornerRadius="10dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        >
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:background="@color/white">
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_margin="10dp"
+                                android:text=" plan"
+                                android:drawableLeft="@drawable/baseline_event_note_24"
+                                android:fontFamily="sans-serif-condensed"
+                                android:textSize="24dp"/>
+
+                        </LinearLayout>
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:background="@color/gray">
                             <LinearLayout
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="horizontal"
-                                android:background="@color/gray">
-                                <ImageView
-                                    android:id="@+id/emergency_imageview"
-                                    android:layout_width="80dp"
-                                    android:layout_height="80dp"
-                                    android:layout_marginTop="10dp"
-                                    android:layout_marginLeft="10dp"
-                                    android:layout_marginBottom="10dp"
-                                    android:textSize="16dp"/>
+                                android:layout_marginLeft="10dp"
+                                android:layout_marginRight="10dp"
+                                android:layout_marginTop="10dp">
                                 <TextView
-                                    android:id="@+id/emergency_textview"
-                                    android:layout_width="match_parent"
+                                    android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:layout_margin="10dp"
+                                    android:layout_marginRight="10dp"
                                     android:layout_gravity="center_vertical"
-                                    android:text=""
+                                    android:text="After"
+                                    android:textSize="16dp"/>
+                                <!--                                    <NumberPicker-->
+                                <!--                                        android:id="@+id/trashcans_tobefilled_numberpicker"-->
+                                <!--                                        android:layout_gravity="center_vertical"-->
+                                <!--                                        android:layout_width="wrap_content"-->
+                                <!--                                        android:layout_height="40dp"-->
+                                <!--                                        android:background="@color/white">-->
+
+                                <!--                                    </NumberPicker>-->
+                                <EditText
+                                    android:id="@+id/trashcans_tobefilled_edittext"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@color/white"
+                                    android:minWidth="50dp"
+                                    android:layout_gravity="center_vertical">
+
+                                </EditText>
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginLeft="10dp"
+                                    android:layout_gravity="center_vertical"
+                                    android:text="hours,"
                                     android:textSize="16dp"/>
                             </LinearLayout>
-
-                        </LinearLayout>
-
-                    </androidx.cardview.widget.CardView>
-
-                    <androidx.cardview.widget.CardView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginLeft="10dp"
-                        android:layout_marginRight="10dp"
-                        android:layout_marginTop="5dp"
-                        android:layout_marginBottom="10dp"
-                        app:cardCornerRadius="10dp">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="match_parent"
-                            android:orientation="vertical"
-                            >
-                            <LinearLayout
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal"
-                                android:background="@color/white">
-                                <TextView
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:layout_margin="10dp"
-                                    android:text=" plan"
-                                    android:drawableLeft="@drawable/baseline_event_note_24"
-                                    android:fontFamily="sans-serif-condensed"
-                                    android:textSize="24dp"/>
-
-                            </LinearLayout>
-                            <LinearLayout
+                            <TextView
+                                android:id="@+id/trashcans_tobefilled_number_textview"
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
-                                android:background="@color/gray">
-                                <LinearLayout
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
-                                    <TimePicker
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1">
+                                android:layout_marginLeft="10dp"
+                                android:layout_marginRight="10dp"
+                                android:layout_marginBottom="10dp"
+                                android:layout_gravity="center_vertical"
+                                android:text="it is expected that n trash cans will be filled :"
+                                android:textSize="16dp"/>
 
-                                    </TimePicker>
-                                    <DatePicker
-                                        android:layout_width="wrap_content"
-                                        android:layout_height="wrap_content"
-                                        android:layout_weight="1">
-
-                                    </DatePicker>
-                                </LinearLayout>
-                                <NumberPicker
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content">
-
-                                </NumberPicker>
-
-                                <TextView
-                                    android:layout_width="match_parent"
-                                    android:layout_height="100dp"
-                                    android:layout_margin="10dp"
-                                    android:text="1"
-                                    android:textSize="16dp"/>
-
-                            </LinearLayout>
+                            <TextView
+                                android:id="@+id/trashcans_tobefilled_list_textview"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginLeft="10dp"
+                                android:layout_marginRight="10dp"
+                                android:layout_marginBottom="10dp"
+                                android:textColor="@color/black"
+                                android:text="1"
+                                android:textSize="16dp"/>
 
                         </LinearLayout>
 
-                    </androidx.cardview.widget.CardView>
+                    </LinearLayout>
 
-                </LinearLayout>
-            </androidx.core.widget.NestedScrollView>
+                </androidx.cardview.widget.CardView>
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
