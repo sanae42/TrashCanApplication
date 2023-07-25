@@ -183,37 +183,68 @@
 
                             </LinearLayout>
                             <LinearLayout
-                                android:layout_width="wrap_content"
+                                android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
                                 android:orientation="vertical"
                                 android:background="@color/gray">
                                 <LinearLayout
                                     android:layout_width="match_parent"
                                     android:layout_height="wrap_content"
-                                    android:orientation="horizontal">
-                                    <TimePicker
+                                    android:orientation="horizontal"
+                                    android:layout_marginLeft="10dp"
+                                    android:layout_marginRight="10dp"
+                                    android:layout_marginTop="10dp">
+                                    <TextView
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:layout_weight="1">
+                                        android:layout_marginRight="10dp"
+                                        android:layout_gravity="center_vertical"
+                                        android:text="After"
+                                        android:textSize="16dp"/>
+<!--                                    <NumberPicker-->
+<!--                                        android:id="@+id/trashcans_tobefilled_numberpicker"-->
+<!--                                        android:layout_gravity="center_vertical"-->
+<!--                                        android:layout_width="wrap_content"-->
+<!--                                        android:layout_height="40dp"-->
+<!--                                        android:background="@color/white">-->
 
-                                    </TimePicker>
-                                    <DatePicker
+<!--                                    </NumberPicker>-->
+                                    <EditText
+                                        android:id="@+id/trashcans_tobefilled_edittext"
                                         android:layout_width="wrap_content"
                                         android:layout_height="wrap_content"
-                                        android:layout_weight="1">
+                                        android:background="@color/white"
+                                        android:minWidth="50dp"
+                                        android:layout_gravity="center_vertical">
 
-                                    </DatePicker>
+                                    </EditText>
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:layout_marginLeft="10dp"
+                                        android:layout_gravity="center_vertical"
+                                        android:text="hours,"
+                                        android:textSize="16dp"/>
                                 </LinearLayout>
-                                <NumberPicker
-                                    android:layout_width="match_parent"
-                                    android:layout_height="wrap_content">
-
-                                </NumberPicker>
+                                <TextView
+                                    android:id="@+id/trashcans_tobefilled_number_textview"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginLeft="10dp"
+                                    android:layout_marginRight="10dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:layout_gravity="center_vertical"
+                                    android:text="it is expected that n trash cans will be filled :"
+                                    android:textSize="16dp"/>
 
                                 <TextView
+                                    android:id="@+id/trashcans_tobefilled_list_textview"
                                     android:layout_width="match_parent"
-                                    android:layout_height="100dp"
-                                    android:layout_margin="10dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginLeft="10dp"
+                                    android:layout_marginRight="10dp"
+                                    android:layout_marginBottom="10dp"
+                                    android:textColor="@color/black"
                                     android:text="1"
                                     android:textSize="16dp"/>
 

@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import android.annotation.SuppressLint;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -46,6 +47,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class TrashCanDetailActivity extends AppCompatActivity {
 
@@ -65,6 +68,8 @@ public class TrashCanDetailActivity extends AppCompatActivity {
     private LineChart lineChart;
     //饼图
     private PieChart pieChart;
+    //进度条窗口
+    private ProgressDialog progressDialog;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -136,6 +141,26 @@ public class TrashCanDetailActivity extends AppCompatActivity {
         }
         MyMqttClient myMQTTClient = MyMqttClient.getInstance();
         myMQTTClient.publishMessage("MQTTServerSub",jsonData.toString(),0);
+
+        //展示进度条
+        try{
+            progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
+        }catch (Exception e){
+            Log.d("进度条窗口闪退", e.getMessage());
+        }
+        Timer timer = new Timer();
+        //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                if(progressDialog.isShowing()){
+                    progressDialog.dismiss();
+                }
+                timer.cancel();
+            }
+        };
+        //6000ms执行一次
+        timer.schedule(task, 6000);
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -153,7 +178,8 @@ public class TrashCanDetailActivity extends AppCompatActivity {
                 setLineChartData(spinner.getSelectedItem().toString());
                 //设置数据
                 setPieChartData();
-
+                //取消进度条
+                progressDialog.dismiss();
             }
 
         } catch (Exception e) {
