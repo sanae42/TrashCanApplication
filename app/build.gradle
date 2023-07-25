@@ -81,6 +81,8 @@ dependencies {
     //图表插件
     //https://blog.csdn.net/qq_29848853/article/details/130868720
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
-//CircleImageView
+    //CircleImageView
     implementation 'de.hdodenhof:circleimageview:3.0.0'
+    //PreferenceManager
+    implementation 'androidx.preference:preference:1.1.1'
 }

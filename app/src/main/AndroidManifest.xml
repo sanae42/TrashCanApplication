@@ -22,9 +22,11 @@
         android:theme="@style/Theme.TrashCanApplication"
         tools:targetApi="31">
         <activity
-            android:name=".TrashCanDetailActivity"
+            android:name=".LoginActivity"
             android:exported="false" />
-        <!-- 谷歌地图所需 -->
+        <activity
+            android:name=".TrashCanDetailActivity"
+            android:exported="false" /> <!-- 谷歌地图所需 -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
