@@ -59,6 +59,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
+import com.example.trashcanapplication.activityCollector.ActivityCollector;
 import com.example.trashcanapplication.activityCollector.BaseActivity;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
@@ -203,7 +204,11 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         // SharedPreference
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
+
+        editor.putBoolean("ifLogin", false); editor.apply(); //TODO：测试用，每次启动应用需重新登陆
+
         refreshViewAccordingToLoginState();
+
 
         //如果登陆，展示进度条
         if(ifLogin){
@@ -217,7 +222,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             TimerTask task = new TimerTask() {
                 @Override
                 public void run() {
-                    if(progressDialog.isShowing()){
+                    if(progressDialog!=null&&progressDialog.isShowing()){
                         progressDialog.dismiss();
                     }
                     timer.cancel();
@@ -509,11 +514,23 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 refreshMapRelatedViewAfterReceiveJSONData();
                 refreshPlanView(Double.parseDouble(editText.getText().toString()));
                 //加载完成，收起进度条
-                progressDialog.dismiss();
+                if(progressDialog!=null){
+                    progressDialog.dismiss();
+                }
+            }
+            if (sender.equals("myMqttClient") && dataType.equals("loginReplyData")) {
+                if(j.getString("result").equals("succeeded")){
+                    editor.putBoolean("ifLogin", true);
+                    editor.apply();
+                    refreshViewAccordingToLoginState();
+                }else {
+
+                }
             }
 
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.d("登录问题", e.getMessage());
         }
     }
 
