@@ -15,6 +15,9 @@ public class TrashCanBean {
     private int Variance;
     private Date LastEmptyTime;
 
+    private String LocationDescription;
+    private String Mode;
+
     public int getId() {
         return Id;
     }
@@ -55,6 +58,14 @@ public class TrashCanBean {
         return LastEmptyTime;
     }
 
+    public String getLocationDescription() {
+        return LocationDescription;
+    }
+
+    public String getMode() {
+        return Mode;
+    }
+
     public void setId(int id) {
         Id = id;
     }
@@ -93,5 +104,13 @@ public class TrashCanBean {
 
     public void setLastEmptyTime(Date lastEmptyTime) {
         LastEmptyTime = lastEmptyTime;
+    }
+
+    public void setLocationDescription(String locationDescription) {
+        LocationDescription = locationDescription;
+    }
+
+    public void setMode(String mode) {
+        Mode = mode;
     }
 }

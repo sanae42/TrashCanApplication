@@ -8,7 +8,9 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
+import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -19,6 +21,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
@@ -56,6 +59,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
+import com.example.trashcanapplication.activityCollector.BaseActivity;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
@@ -122,7 +126,14 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MainActivity extends BaseActivity implements OnMapReadyCallback {
+    //登录状态
+    private Boolean ifLogin;
+
+    //sp数据库 存放应用设置状态
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
+
     //是否完成授权
     Boolean isPermissionGranter;
     //谷歌地图控件
@@ -134,6 +145,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String ClientId = "Android/"+Id;
 
     JSONObject jsonData;
+
+    //主界面主体布局
+    private NestedScrollView loggedMainView;
+    private RelativeLayout unloggedMainView;
 
     //搜索栏
     private SearchView mSearchView = null;
@@ -185,30 +200,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        https://blog.csdn.net/android410223Sun/article/details/123183448
         EventBus.getDefault().register(this);
 
-        try{
-            progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
-        }catch (Exception e){
-            Log.d("进度条窗口闪退", e.getMessage());
-        }
-        Timer timer = new Timer();
-        //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
-        TimerTask task = new TimerTask() {
-            @Override
-            public void run() {
-                if(progressDialog.isShowing()){
-                    progressDialog.dismiss();
-                }
-                timer.cancel();
+        // SharedPreference
+        pref = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = pref.edit();
+        refreshViewAccordingToLoginState();
+
+        //如果登陆，展示进度条
+        if(ifLogin){
+            try{
+                progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
+            }catch (Exception e){
+                Log.d("进度条窗口闪退", e.getMessage());
             }
-        };
-        //6000ms执行一次
-        timer.schedule(task, 6000);
+            Timer timer = new Timer();
+            //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    if(progressDialog.isShowing()){
+                        progressDialog.dismiss();
+                    }
+                    timer.cancel();
+                }
+            };
+            //6000ms执行一次
+            timer.schedule(task, 6000);
+        }
     }
 
     /**
      * 初始化控件
      */
     private void initiateView(){
+        //主界面主体布局
+        loggedMainView = (NestedScrollView)findViewById(R.id.logged_main_view);
+        unloggedMainView = (RelativeLayout)findViewById(R.id.unlogged_main_view);
         //谷歌地图视图
         mapView = findViewById(R.id.mapView);
         //搜索栏
@@ -362,6 +388,26 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     /**
+     * 根据登录状态刷新布局
+     */
+    private void refreshViewAccordingToLoginState(){
+        ifLogin = pref.getBoolean("ifLogin", false);
+        if(ifLogin){
+            loggedMainView.setVisibility(View.VISIBLE);
+            unloggedMainView.setVisibility(View.GONE);
+
+            loggedHeaderLayout.setVisibility(View.VISIBLE);
+            unloggedHeaderLayout.setVisibility(View.GONE);
+        }else {
+            loggedMainView.setVisibility(View.GONE);
+            unloggedMainView.setVisibility(View.VISIBLE);
+
+            loggedHeaderLayout.setVisibility(View.GONE);
+            unloggedHeaderLayout.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
      * 根据输入的hour刷新plan布局
      */
     public void refreshPlanView(double hour){
@@ -447,7 +493,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String s) {
         //TODO:此处需考虑JSON损坏，转换失败的情况
-        //{"sender":"myMqttClient","dataType":"allTrashCanData","payload":[{"Id":1,"Distance":67,"Humidity":67,"Temperature":67,"Latitude":52.445978,"Longitude":-1.935167},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156}]}
+        // {"sender":"myMqttClient","dataType":"allTrashCanData","payload":[{"Id":1,"Distance":1179,"Humidity":54,"Temperature":23,"Latitude":52.445978,"Longitude":-1.935167,"Depth":100,"LastEmptyTime":{"date":26,"day":3,"hours":18,"minutes":38,"month":6,"nanos":0,"seconds":9,"time":1690393089000,"timezoneOffset":-60,"year":123},"EstimatedTime":58,"Variance":0,"LocationDescription":"Near the UOB South Gate","Mode":"1"},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156,"Depth":80,"LastEmptyTime":{"date":12,"day":3,"hours":1,"minutes":8,"month":6,"nanos":0,"seconds":40,"time":1689120520000,"timezoneOffset":-60,"year":123},"EstimatedTime":111,"Variance":222,"LocationDescription":"At the entrance of McDonald's","Mode":"2"}]}
         JSONObject j;
         try {
             j = new JSONObject(s);
@@ -456,6 +502,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             //接收到的JSON数据为，全部垃圾桶状态数据
             // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
             if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
+                if(!ifLogin){
+                    return;
+                }
                 jsonData = j;
                 refreshMapRelatedViewAfterReceiveJSONData();
                 refreshPlanView(Double.parseDouble(editText.getText().toString()));
@@ -502,6 +551,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                     trashCanBean.setDepth(jsonObj.getInt("Depth"));
                     trashCanBean.setEstimatedTime(jsonObj.getInt("EstimatedTime"));
                     trashCanBean.setVariance(jsonObj.getInt("Variance"));
+
+                    trashCanBean.setLocationDescription(jsonObj.getString("LocationDescription"));
+                    trashCanBean.setMode(jsonObj.getString("Mode"));
                     //时间戳转date
                     Long timeStamp = Long.parseLong(jsonObj.getJSONObject("LastEmptyTime").getString("time"));
                     Date LastEmptyTime = new Date(timeStamp);
@@ -663,6 +715,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 TrashCanBean bean = (TrashCanBean) marker.getTag();
                 intent.putExtra("TrashCanId",bean.getId());
                 intent.putExtra("Depth",bean.getDepth());
+                intent.putExtra("Mode",bean.getMode());
 //                Toast.makeText(MainActivity.this, "活动跳转传参:"+bean.getId(), Toast.LENGTH_SHORT).show();
                 startActivity(intent);
             }

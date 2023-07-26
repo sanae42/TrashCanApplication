@@ -3,10 +3,15 @@
     <string name="title_activity_maps">MapsActivity</string>
     <string name="title_activity_main">MainActivity</string>
 
-    <string-array name="planets_array">
+    <string-array name="linechart_type_array">
         <item>Trash Amount</item>
         <item>Temperature</item>
         <item>Humidity</item>
+    </string-array>
+    <string-array name="trashcan_mode_array">
+        <item>Real-time data collection mode</item>
+        <item>Standard data collection mode</item>
+        <item>Only necessary data collection mode</item>
     </string-array>
     <string name="title_activity_login">LoginActivity</string>
     <string name="prompt_email">Email</string>

@@ -6,7 +6,9 @@ import androidx.preference.PreferenceManager;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 
-public class LoginActivity extends AppCompatActivity {
+import com.example.trashcanapplication.activityCollector.BaseActivity;
+
+public class LoginActivity extends BaseActivity {
 
     //sp数据库 存放应用设置状态
     private SharedPreferences pref;

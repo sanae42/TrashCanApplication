@@ -15,9 +15,11 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
+import com.example.trashcanapplication.activityCollector.BaseActivity;
 import com.github.mikephil.charting.animation.Easing;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
@@ -50,26 +52,30 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class TrashCanDetailActivity extends AppCompatActivity {
+public class TrashCanDetailActivity extends BaseActivity {
 
     private int TrashCanId;
     private int Depth;
+    private String Mode;
 
     JSONObject jsonData;
 
     //MQTT
-    private MyMqttClient myMQTTClient;
+    private MyMqttClient myMQTTClient = null;
     private static Integer Id = 1;
     private String ClientId = "Android/"+Id;
 
-    //下拉选择器
-    private Spinner spinner;
+    //折线图的下拉选择器
+    private Spinner spinnerLinechart;
     //折线图
     private LineChart lineChart;
     //饼图
     private PieChart pieChart;
     //进度条窗口
     private ProgressDialog progressDialog;
+
+    //垃圾桶模式的下拉选择器
+    private Spinner spinnerTrashcanMode;
 
     @SuppressLint("MissingInflatedId")
     @Override
@@ -80,6 +86,7 @@ public class TrashCanDetailActivity extends AppCompatActivity {
         Intent intent = getIntent();
         TrashCanId = intent.getIntExtra("TrashCanId",-1);
         Depth = intent.getIntExtra("Depth",-1);
+        Mode = intent.getStringExtra("Mode");
 
         //        导航条
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -93,20 +100,44 @@ public class TrashCanDetailActivity extends AppCompatActivity {
             actionBar.setDisplayShowTitleEnabled(false);
         }
 
-        spinner = findViewById(R.id.action_bar_spinner);
+        spinnerLinechart = findViewById(R.id.spinner_linechart);
         // Create an ArrayAdapter using the string array and a default spinner layout
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
-                R.array.planets_array, android.R.layout.simple_spinner_item);
+        ArrayAdapter<CharSequence> spinnerLinechartAdapter = ArrayAdapter.createFromResource(this,
+                R.array.linechart_type_array, android.R.layout.simple_spinner_item);
         // Specify the layout to use when the list of choices appears
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerLinechartAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
-        spinner.setAdapter(adapter);
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+        spinnerLinechart.setAdapter(spinnerLinechartAdapter);
+        spinnerLinechart.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
 
                 if(jsonData!=null){
                     setLineChartData(adapterView.getSelectedItem().toString());
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
+        //垃圾桶模式
+        spinnerTrashcanMode = findViewById(R.id.spinner_trashcan_mode);
+        ArrayAdapter<CharSequence> spinnerTrashcanModeAdapter = ArrayAdapter.createFromResource(this,
+                R.array.trashcan_mode_array, android.R.layout.simple_spinner_item);
+        spinnerTrashcanModeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        // Apply the adapter to the spinner
+        spinnerTrashcanMode.setAdapter(spinnerTrashcanModeAdapter);
+        //最初选中此垃圾桶Mode对应的模式选项
+        spinnerTrashcanMode.setSelection(Integer.parseInt(Mode)-1);
+        spinnerTrashcanMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                if(myMQTTClient!=null){
+                    String msg = String.valueOf(i+1);
+                    myMQTTClient.publishMessage("TrashCanSub/"+TrashCanId,msg,0);
                 }
             }
 
@@ -130,17 +161,17 @@ public class TrashCanDetailActivity extends AppCompatActivity {
         //使用EventBus与线程交流
         EventBus.getDefault().register(this);
         //向服务器发送垃圾桶数据请求
-        JSONObject jsonData = new JSONObject();
+        JSONObject jsonObject = new JSONObject();
 
         try {
-            jsonData.put("dataType", "trashCanDataRequest");
-            jsonData.put("Id", ClientId );
-            jsonData.put("TrashCanId", TrashCanId);
+            jsonObject.put("dataType", "trashCanDataRequest");
+            jsonObject.put("Id", ClientId );
+            jsonObject.put("TrashCanId", TrashCanId);
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
         MyMqttClient myMQTTClient = MyMqttClient.getInstance();
-        myMQTTClient.publishMessage("MQTTServerSub",jsonData.toString(),0);
+        myMQTTClient.publishMessage("MQTTServerSub",jsonObject.toString(),0);
 
         //展示进度条
         try{
@@ -175,7 +206,7 @@ public class TrashCanDetailActivity extends AppCompatActivity {
             if (sender.equals("myMqttClient") && dataType.equals("thisTrashCanData")){
 
                 jsonData = j;
-                setLineChartData(spinner.getSelectedItem().toString());
+                setLineChartData(spinnerLinechart.getSelectedItem().toString());
                 //设置数据
                 setPieChartData();
                 //取消进度条

@@ -30,6 +30,8 @@
         </com.google.android.material.appbar.AppBarLayout>
 
         <androidx.core.widget.NestedScrollView
+            android:visibility="gone"
+            android:id="@+id/logged_main_view"
             app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
@@ -256,6 +258,39 @@
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
+
+        <RelativeLayout
+            android:id="@+id/unlogged_main_view"
+            app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_centerInParent="true">
+                <ImageView
+                    android:layout_width="180dp"
+                    android:layout_height="180dp"
+                    android:layout_gravity="center_horizontal"
+                    android:src="@drawable/unlogged_background">
+
+                </ImageView>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_margin="5dp"
+                    android:textSize="16dp"
+                    android:text="please login"
+                    android:layout_gravity="center_horizontal">
+
+                </TextView>
+            </LinearLayout>
+
+        </RelativeLayout>
+
+
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
