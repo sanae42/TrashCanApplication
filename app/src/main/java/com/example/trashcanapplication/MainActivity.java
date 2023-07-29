@@ -18,6 +18,9 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -52,6 +55,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -156,8 +160,6 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         // SharedPreference
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
-
-        editor.putBoolean("ifLogin", false); editor.apply(); //TODO：测试用，每次启动应用需重新登陆
 
         refreshViewAccordingToLoginState();
 
@@ -285,11 +287,9 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                if(editText.getText()!=null && editText.getText().toString().length()>0){
-                    refreshPlanView(Double.parseDouble(editText.getText().toString()));
-                }else {
-                    refreshPlanView(0);
-                }
+
+                refreshPlanView();
+
 //                Toast.makeText(MainActivity.this, editText.getText(), Toast.LENGTH_SHORT).show();
             }
 
@@ -382,9 +382,15 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     /**
      * 根据输入的hour刷新plan布局
      */
-    public void refreshPlanView(double hour){
+    public void refreshPlanView(){
         if(trashCanList==null){
             return;
+        }
+        double hour = 0;
+        if(editText.getText()!=null && editText.getText().toString().length()>0){
+            hour = Double.parseDouble(editText.getText().toString());
+        }else {
+            hour = 0;
         }
         List<TrashCanBean> toBeFilledList = new ArrayList<>();
         for(TrashCanBean bean : trashCanList){
@@ -401,14 +407,23 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         if(toBeFilledList.size() > 0){
             toBeFilledNumberTextView.setText("it is expected that " + toBeFilledList.size() + " trash cans will be filled :");
             String str = "";
+            List<Integer> planIdList = new ArrayList<>();
             for(int i = 0; i < toBeFilledList.size(); i++){
                 if(i!=0){
                     str += ", ";
                 }
                 str += toBeFilledList.get(i).getId();
+                planIdList.add(toBeFilledList.get(i).getId());
             }
             toBeFilledListTextView.setText(str);
             toBeFilledListTextView.setVisibility(View.VISIBLE);
+
+            //清空地图标记列表
+            markerList.clear();
+            //会导致打开的infowindow关闭
+            googleMap.clear();
+            //刷新地图标记
+            setMarkerIcon(planIdList);
         }else {
             toBeFilledNumberTextView.setText("it is expected that no trash can will be filled");
             toBeFilledListTextView.setVisibility(View.GONE);
@@ -479,7 +494,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 }
                 jsonData = j;
                 refreshMapRelatedViewAfterReceiveJSONData();
-                refreshPlanView(Double.parseDouble(editText.getText().toString()));
+                refreshPlanView();
                 //加载完成，收起进度条
                 if(progressDialog!=null){
                     progressDialog.dismiss();
@@ -526,7 +541,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             markerList.clear();
             //清除地图标记
             //TODO: marker刷新会导致打开的infowindow关闭
-//                googleMap.clear();
+            googleMap.clear();
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObj = null;
@@ -554,26 +569,21 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 
                     //将trashCanBean对象插入trashCanList
                     trashCanList.add(trashCanBean);
-                    //在地图上标出该点
-                    LatLng latLng = new LatLng(trashCanBean.getLatitude(), trashCanBean.getLongitude());
-                    Marker marker = googleMap.addMarker(
-                            new MarkerOptions()
-                                    .position(latLng)
-                                    .title("Trash Can " + (int)trashCanBean.getId())
-                                    .snippet("distance:"+trashCanBean.getDistance()));
-                    //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
-                    marker.setTag(trashCanBean);
-                    markerList.add(marker);
 
 //                        MarkerOptions markerOptions = new MarkerOptions();
 //                        markerOptions.title("Trash Can " + trashCanBean.getId());
 //                        markerOptions.position(latLng);
 //                        googleMap.addMarker(markerOptions);
-                } catch (JSONException e) {
-                    Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this,  e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Log.d("地图icon问题", e.getMessage());
                     throw new RuntimeException(e);
                 }
             }
+
+            //设置地图标记
+            setMarkerIcon(null);
+
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
@@ -684,6 +694,80 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 permissionToken.continuePermissionRequest();
             }
         }).check();
+    }
+
+    /***
+     * 设置垃圾桶图标样式
+     */
+    private void setMarkerIcon(List<Integer> planIdSet){
+        if(trashCanList == null || trashCanList.size() == 0){
+            return;
+        }
+
+        //bitmap_normal
+        Bitmap bitmap_normal = BitmapFactory.decodeResource(getResources(), R.drawable.location_normal);
+        int width = bitmap_normal.getWidth();
+        int height = bitmap_normal.getHeight();
+        Matrix matrix = new Matrix();
+        matrix.postScale(0.14f,0.14f);
+        bitmap_normal=Bitmap.createBitmap(bitmap_normal,0,0,width,height,matrix,true);
+        //bitmap_alert
+        Bitmap bitmap_alert = BitmapFactory.decodeResource(getResources(), R.drawable.location_alert);
+        bitmap_alert=Bitmap.createBitmap(bitmap_alert,0,0,width,height,matrix,true);
+        //bitmap_full
+        Bitmap bitmap_full = BitmapFactory.decodeResource(getResources(), R.drawable.location_full);
+        bitmap_full=Bitmap.createBitmap(bitmap_full,0,0,width,height,matrix,true);
+        //bitmap_plan
+        Bitmap bitmap_plan = BitmapFactory.decodeResource(getResources(), R.drawable.location_plan);
+        bitmap_plan=Bitmap.createBitmap(bitmap_plan,0,0,width,height,matrix,true);
+
+        for(TrashCanBean bean : trashCanList){
+            double dis = bean.getDistance();
+            double dep = bean.getDepth();
+            LatLng latLng = new LatLng(bean.getLatitude(), bean.getLongitude());
+
+            if(bean.getTemperature() > 45){
+                Marker marker = googleMap.addMarker(
+                        new MarkerOptions()
+                                .position(latLng)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_alert)));
+                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                marker.setTag(bean);
+                markerList.add(marker);
+                continue;
+            }
+            if((dep-dis)/dep > 0.9){
+                Marker marker = googleMap.addMarker(
+                        new MarkerOptions()
+                                .position(latLng)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_full)));
+                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                marker.setTag(bean);
+                markerList.add(marker);
+                continue;
+            }
+            if(planIdSet!=null && planIdSet.contains(bean.getId())){
+                Marker marker = googleMap.addMarker(
+                        new MarkerOptions()
+                                .position(latLng)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_plan)));
+                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                marker.setTag(bean);
+                markerList.add(marker);
+                continue;
+            }
+            if(true){
+                Marker marker = googleMap.addMarker(
+                        new MarkerOptions()
+                                .position(latLng)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_normal)));
+                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                marker.setTag(bean);
+                markerList.add(marker);
+                continue;
+            }
+
+        }
     }
 
     @Override
