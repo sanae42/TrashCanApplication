@@ -3,37 +3,27 @@ package com.example.trashcanapplication;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.preference.PreferenceManager;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
 import android.os.PersistableBundle;
 import android.provider.Settings;
 import android.text.Editable;
@@ -42,66 +32,35 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.OnReceiveContentListener;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.NumberPicker;
-import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 import android.widget.SearchView;
-import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
-import com.example.trashcanapplication.activityCollector.ActivityCollector;
 import com.example.trashcanapplication.activityCollector.BaseActivity;
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.components.XAxis;
-import com.github.mikephil.charting.components.YAxis;
-import com.github.mikephil.charting.data.BarData;
-import com.github.mikephil.charting.data.BarDataSet;
-import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
-import com.github.mikephil.charting.formatter.IAxisValueFormatter;
-import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
-import com.github.mikephil.charting.utils.EntryXComparator;
+import com.example.trashcanapplication.login.LoginActivity;
+import com.example.trashcanapplication.setting.SettingActivity;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.common.api.ResolvableApiException;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.location.LocationSettingsRequest;
-import com.google.android.gms.location.LocationSettingsResponse;
-import com.google.android.gms.location.LocationSettingsStatusCodes;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.UiSettings;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
 import com.google.android.material.navigation.NavigationView;
 import com.karumi.dexter.Dexter;
-import com.karumi.dexter.MultiplePermissionsReport;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionDeniedResponse;
 import com.karumi.dexter.listener.PermissionGrantedResponse;
 import com.karumi.dexter.listener.PermissionRequest;
-import com.karumi.dexter.listener.multi.MultiplePermissionsListener;
 import com.karumi.dexter.listener.single.PermissionListener;
 
 import org.greenrobot.eventbus.EventBus;
@@ -113,19 +72,12 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     //登录状态
@@ -363,13 +315,28 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
                 if(id == R.id.nav_chat){
-                    Toast.makeText(MainActivity.this, "点击了nav_chat", Toast.LENGTH_SHORT).show();
+                    if(!ifLogin){
+                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
+                    }else {
+                        Toast.makeText(MainActivity.this, "点击了nav_chat", Toast.LENGTH_SHORT).show();
+                    }
                 }
                 if(id == R.id.nav_user){
-                    Toast.makeText(MainActivity.this, "点击了nav_user", Toast.LENGTH_SHORT).show();
+                    if(!ifLogin){
+                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
+                    }else {
+                        Toast.makeText(MainActivity.this, "点击了nav_user", Toast.LENGTH_SHORT).show();
+                    }
                 }
                 if(id == R.id.nav_setting){
-                    Toast.makeText(MainActivity.this, "点击了nav_setting", Toast.LENGTH_SHORT).show();
+                    if(!ifLogin){
+                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
+                    }else {
+//                        Toast.makeText(MainActivity.this, "点击了nav_setting", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent();
+                        intent.setClass(getApplicationContext(), SettingActivity.class);
+                        startActivity(intent);
+                    }
                 }
                 if(id == R.id.nav_more){
                     Toast.makeText(MainActivity.this, "点击了nav_more", Toast.LENGTH_SHORT).show();
@@ -519,6 +486,15 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 }
             }
             if (sender.equals("myMqttClient") && dataType.equals("loginReplyData")) {
+                if(j.getString("result").equals("succeeded")){
+                    editor.putBoolean("ifLogin", true);
+                    editor.apply();
+                    refreshViewAccordingToLoginState();
+                }else {
+
+                }
+            }
+            if (sender.equals("myMqttClient") && dataType.equals("registerReplyData")) {
                 if(j.getString("result").equals("succeeded")){
                     editor.putBoolean("ifLogin", true);
                     editor.apply();

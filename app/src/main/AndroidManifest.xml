@@ -22,7 +22,16 @@
         android:theme="@style/Theme.TrashCanApplication"
         tools:targetApi="31">
         <activity
-            android:name=".LoginActivity"
+            android:name=".setting.SettingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".setting.UserSettingActivity"
+            android:exported="false" />
+        <activity
+            android:name=".login.RegisterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".login.LoginActivity"
             android:exported="false" />
         <activity
             android:name=".TrashCanDetailActivity"

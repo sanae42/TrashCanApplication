@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".login.LoginActivity">
+    tools:context=".login.RegisterActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -46,26 +46,33 @@
                 android:paddingRight="20dp" />
 
             <EditText
-                android:id="@+id/Password"
+                android:id="@+id/Password1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="30dp"
                 android:layout_marginRight="30dp"
+                android:layout_marginBottom="20dp"
                 android:ems="10"
                 android:hint="请输入密码"
                 android:inputType="textPassword"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp" />
 
-
-            <TextView
-                android:id="@+id/Forgetpassword"
-                android:layout_width="wrap_content"
+            <EditText
+                android:id="@+id/Password2"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="right"
-                android:layout_marginTop="10dp"
-                android:layout_marginRight="25dp"
-                android:text="忘记密码" />
+                android:layout_marginLeft="30dp"
+                android:layout_marginRight="30dp"
+                android:layout_marginBottom="30dp"
+                android:ems="10"
+                android:hint="请再次输入密码"
+                android:inputType="textPassword"
+                android:paddingLeft="20dp"
+                android:paddingRight="20dp" />
+
+
+
         </LinearLayout>
 
         <LinearLayout
@@ -73,18 +80,6 @@
             android:layout_height="match_parent"
             android:orientation="vertical">
 
-            <Button
-                android:id="@+id/Sign_in"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="30dp"
-                android:layout_marginTop="30dp"
-                android:layout_marginRight="30dp"
-                android:layout_marginBottom="20dp"
-                android:background="?attr/colorPrimary"
-                android:text="登 录"
-                android:textColor="#FFFFFB"
-                android:textSize="18sp" />
 
             <Button
                 android:id="@+id/Sign_up"
@@ -101,8 +96,5 @@
         </LinearLayout>
 
     </LinearLayout>
-
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>
