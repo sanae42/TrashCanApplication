@@ -470,7 +470,6 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         }
     }
 
-
     /***
      * EventBus回调
      * 如果使用事件处理函数指定了线程模型为MainThread，那么不论事件是在哪个线程中发布出来的，
