@@ -47,6 +47,7 @@ import android.widget.Toast;
 import com.example.trashcanapplication.MQTT.MyMqttClient;
 import com.example.trashcanapplication.activityCollector.BaseActivity;
 import com.example.trashcanapplication.login.LoginActivity;
+import com.example.trashcanapplication.service.MyService;
 import com.example.trashcanapplication.setting.SettingActivity;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -184,6 +185,12 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             };
             //6000ms执行一次
             timer.schedule(task, 6000);
+        }
+
+        //如果允许后台通知则开始应用后开启通知服务
+        if(ifLogin && pref.getBoolean("backgroundNotification", true) == true){
+            Intent startIntent = new Intent(this, MyService.class);
+            startService(startIntent);
         }
     }
 
