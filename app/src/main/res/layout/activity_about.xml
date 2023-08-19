@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="260dp"
+        android:background="@color/white2"
+        tools:ignore="MissingConstraints">
+
+        <ImageView
+            android:id="@+id/logo_image"
+            android:layout_width="110dp"
+            android:layout_height="110dp"
+            android:layout_centerInParent="true"
+            android:src="@drawable/logo"></ImageView>
+        <TextView
+            android:id="@+id/app_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="26dp"
+            android:text="EasyTrashcan"
+            android:textColor="@color/black"
+            android:layout_centerHorizontal="true"
+            android:fontFamily="sans-serif-condensed"
+            android:layout_below="@id/logo_image">
+
+        </TextView>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16dp"
+            android:text="v1.0"
+            android:fontFamily="sans-serif-black"
+            android:layout_centerHorizontal="true"
+            android:layout_toRightOf="@+id/app_name"
+            android:layout_above="@+id/app_name">
+
+        </TextView>
+    </RelativeLayout>
+
+    <LinearLayout
+        android:id="@+id/rule_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <!--item的上分割线-->
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1px"
+            android:background="#efefef" />
+
+        <!--item内容部分的容器-->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="70sp"
+            android:background="@drawable/linearlayout_item_view"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp">
+
+            <!--item左边的Icon-->
+<!--            <ImageView-->
+<!--                android:layout_width="20dp"-->
+<!--                android:layout_height="20dp"-->
+<!--                android:src="@mipmap/nick_edit"/>-->
+
+            <!--item中间部分的文字-->
+            <TextView
+                android:layout_width="0dp"
+                android:text="用户使用条例"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="12dp"
+                android:layout_weight="1"
+                android:textSize="18sp" />
+
+            <!--item 中间部分的输入框（有则显示五则隐藏，默认隐藏）-->
+            <!--            <EditText-->
+            <!--                android:layout_width="0dp"-->
+            <!--                android:layout_height="wrap_content"-->
+            <!--                android:layout_weight="2"-->
+            <!--                android:background="@color/transparent"-->
+            <!--                android:lines="1"-->
+            <!--                android:maxLines="1"-->
+            <!--                android:textSize="14sp" />-->
+
+            <!--item右边的文字-->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14sp" />
+
+            <!--item右边的Icon 默认是向右的箭头-->
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:paddingLeft="10dp"
+                android:src="@drawable/baseline_keyboard_arrow_right_24" />
+        </LinearLayout>
+
+        <!--item的下分割线-->
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1px"
+            android:background="#efefef" />
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/donation_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <!--item的上分割线-->
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1px"
+            android:background="#efefef" />
+
+        <!--item内容部分的容器-->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="70sp"
+            android:background="@drawable/linearlayout_item_view"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="10dp"
+            android:paddingLeft="20dp"
+            android:paddingRight="20dp"
+            android:paddingTop="10dp">
+
+            <!--item左边的Icon-->
+<!--            <ImageView-->
+<!--                android:layout_width="20dp"-->
+<!--                android:layout_height="20dp"-->
+<!--                android:src="@mipmap/password_wdit"/>-->
+
+            <!--item中间部分的文字-->
+            <TextView
+                android:layout_width="0dp"
+                android:text="捐赠"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="12dp"
+                android:layout_weight="1"
+                android:textSize="18sp" />
+
+            <!--item 中间部分的输入框（有则显示五则隐藏，默认隐藏）-->
+            <!--            <EditText-->
+            <!--                android:layout_width="0dp"-->
+            <!--                android:layout_height="wrap_content"-->
+            <!--                android:layout_weight="2"-->
+            <!--                android:background="@color/transparent"-->
+            <!--                android:lines="1"-->
+            <!--                android:maxLines="1"-->
+            <!--                android:textSize="14sp" />-->
+
+            <!--item右边的文字-->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="14sp" />
+
+            <!--item右边的Icon 默认是向右的箭头-->
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:paddingLeft="10dp"
+                android:src="@drawable/baseline_keyboard_arrow_right_24" />
+        </LinearLayout>
+
+        <!--item的下分割线-->
+        <View
+            android:layout_width="fill_parent"
+            android:layout_height="1px"
+            android:background="#efefef" />
+
+    </LinearLayout>
+
+</LinearLayout>

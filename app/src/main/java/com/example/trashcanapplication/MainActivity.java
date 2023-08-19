@@ -5,6 +5,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -12,6 +14,9 @@ import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.app.Dialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -45,10 +50,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
+import com.example.trashcanapplication.about.AboutActivity;
 import com.example.trashcanapplication.activityCollector.BaseActivity;
 import com.example.trashcanapplication.login.LoginActivity;
-import com.example.trashcanapplication.service.MyService;
 import com.example.trashcanapplication.setting.SettingActivity;
+import com.example.trashcanapplication.setting.UserSettingActivity;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -187,11 +193,12 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             timer.schedule(task, 6000);
         }
 
-        //如果允许后台通知则开始应用后开启通知服务
-        if(ifLogin && pref.getBoolean("backgroundNotification", true) == true){
-            Intent startIntent = new Intent(this, MyService.class);
-            startService(startIntent);
-        }
+        //TODO:service不可用
+//        //如果允许后台通知则开始应用后开启通知服务
+//        if(ifLogin && pref.getBoolean("backgroundNotification", true) == true){
+//            Intent startIntent = new Intent(this, MyService.class);
+//            startService(startIntent);
+//        }
     }
 
     /**
@@ -321,18 +328,13 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
-                if(id == R.id.nav_chat){
-                    if(!ifLogin){
-                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
-                    }else {
-                        Toast.makeText(MainActivity.this, "点击了nav_chat", Toast.LENGTH_SHORT).show();
-                    }
-                }
                 if(id == R.id.nav_user){
                     if(!ifLogin){
                         Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
                     }else {
-                        Toast.makeText(MainActivity.this, "点击了nav_user", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent();
+                        intent.setClass(getApplicationContext(), UserSettingActivity.class);
+                        startActivity(intent);
                     }
                 }
                 if(id == R.id.nav_setting){
@@ -345,8 +347,10 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                         startActivity(intent);
                     }
                 }
-                if(id == R.id.nav_more){
-                    Toast.makeText(MainActivity.this, "点击了nav_more", Toast.LENGTH_SHORT).show();
+                if(id == R.id.nav_about){
+                    Intent intent = new Intent();
+                    intent.setClass(getApplicationContext(), AboutActivity.class);
+                    startActivity(intent);
                 }
                 return true;
             }
@@ -509,6 +513,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             if (sender.equals("myMqttClient") && dataType.equals("loginReplyData")) {
                 if(j.getString("result").equals("succeeded")){
                     editor.putBoolean("ifLogin", true);
+                    editor.putString("UserName", j.getString("UserName"));
                     editor.apply();
                     refreshViewAccordingToLoginState();
                 }else {
@@ -518,11 +523,24 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             if (sender.equals("myMqttClient") && dataType.equals("registerReplyData")) {
                 if(j.getString("result").equals("succeeded")){
                     editor.putBoolean("ifLogin", true);
+                    editor.putString("UserName", j.getString("UserName"));
                     editor.apply();
                     refreshViewAccordingToLoginState();
                 }else {
 
                 }
+            }
+            if (sender.equals("myMqttClient") && dataType.equals("editUserNameReplyData")) {
+                if(j.getString("result").equals("succeeded")){
+                    editor.putString("UserName", j.getString("UserName"));
+                    editor.apply();
+                    refreshViewAccordingToLoginState();
+                }else {
+
+                }
+            }
+            if (sender.equals("application") && dataType.equals("exit")) {
+                refreshViewAccordingToLoginState();
             }
 
         } catch (Exception e) {
@@ -616,6 +634,13 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 str += emergencyIdList.get(i).toString();
             }
             emergencyTextview.setText(str);
+
+            //火灾通知
+            if(pref.getBoolean("ifNotification", false)){
+                String title = "emergency";
+                String text = "There are " + emergencyIdList.size() + " trash cans currently on fire";
+                makeNotification(title, text);
+            }
         }
 
     }
@@ -905,6 +930,50 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             startActivity(intent);
         }
+    }
+
+    /***
+     * 创建通知相关函数
+     */
+    private String createNotificationChannel(String channelID, String channelNAME, int level) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel(channelID, channelNAME, level);
+            manager.createNotificationChannel(channel);
+            return channelID;
+        } else {
+            return null;
+        }
+    }
+
+    /***
+     * 创建一条通知
+     */
+    private void makeNotification(String title, String text) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
+
+        String channelId = createNotificationChannel("my_channel_ID", "my_channel_NAME", NotificationManager.IMPORTANCE_HIGH);
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(getApplicationContext(), channelId)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setContentIntent(pendingIntent)
+                .setSmallIcon(R.drawable.icon_emergency)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        notificationManager.notify(100, notification.build());
     }
 
     @Override
