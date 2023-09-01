@@ -18,6 +18,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -30,6 +31,9 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.LinkAddress;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -83,6 +87,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -174,7 +179,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         //如果登陆，展示进度条
         if(ifLogin){
             try{
-                progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
+                progressDialog = ProgressDialog.show(this,"loading","Loading data from the server");
             }catch (Exception e){
                 Log.d("进度条窗口闪退", e.getMessage());
             }
@@ -192,6 +197,23 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             //6000ms执行一次
             timer.schedule(task, 6000);
         }
+
+
+        //TODO:刚启动应用时为sp的IP字段设置IP地址，并订阅，之后与服务器沟通都是通过此地址
+        ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Service.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = cm.getActiveNetworkInfo();
+        List<LinkAddress> linkAddresses = cm.getLinkProperties(cm.getActiveNetwork()).getLinkAddresses();
+//获取当前连接的网络ip地址信息
+        if(linkAddresses != null && !linkAddresses.isEmpty()){
+//注意：同时可以查看到两个网口的信息，但是ip地址不是固定的位置（即下标）
+//所以遍历的时候需要判断一下当前获取的ip地址是否符合ip地址的正则表达式
+            for (int i = 0; i < linkAddresses.size(); i++) {
+                InetAddress address = linkAddresses.get(i).getAddress();
+//判断ip地址的正则表达
+                Log.d("IP地址", address.getHostAddress());
+            }
+        }
+
 
         //TODO:service不可用
 //        //如果允许后台通知则开始应用后开启通知服务
@@ -452,12 +474,12 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         if(id == android.R.id.home){
             mDrawerLayout.openDrawer(GravityCompat.START);
         }
-        if(id == R.id.button1){
-            Toast.makeText(MainActivity.this, "点击了button1", Toast.LENGTH_SHORT).show();
-        }
-        if(id == R.id.button2){
-            Toast.makeText(MainActivity.this, "点击了button2", Toast.LENGTH_SHORT).show();
-        }
+//        if(id == R.id.button1){
+//            Toast.makeText(MainActivity.this, "点击了button1", Toast.LENGTH_SHORT).show();
+//        }
+//        if(id == R.id.button2){
+//            Toast.makeText(MainActivity.this, "点击了button2", Toast.LENGTH_SHORT).show();
+//        }
         return true;
     }
 
@@ -707,7 +729,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             @Override
             public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
                 isPermissionGranter = true;
-                Toast.makeText(MainActivity.this, "授权成功", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Authorization successful", Toast.LENGTH_SHORT).show();
             }
 
             //拒绝：跳转到应用详情
@@ -757,21 +779,21 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             double dep = bean.getDepth();
             LatLng latLng = new LatLng(bean.getLatitude(), bean.getLongitude());
 
-            if(bean.getTemperature() > 45){
-                Marker marker = googleMap.addMarker(
-                        new MarkerOptions()
-                                .position(latLng)
-                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_alert)));
-                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
-                marker.setTag(bean);
-                markerList.add(marker);
-                continue;
-            }
             if((dep-dis)/dep > 0.9){
                 Marker marker = googleMap.addMarker(
                         new MarkerOptions()
                                 .position(latLng)
                                 .icon(BitmapDescriptorFactory.fromBitmap(bitmap_full)));
+                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                marker.setTag(bean);
+                markerList.add(marker);
+                continue;
+            }
+            if(bean.getTemperature() > 45){
+                Marker marker = googleMap.addMarker(
+                        new MarkerOptions()
+                                .position(latLng)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_alert)));
                 //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
                 marker.setTag(bean);
                 markerList.add(marker);

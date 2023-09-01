@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TrashCanApplication</string>
+    <string name="app_name">TrashCanApp</string>
     <string name="title_activity_maps">MapsActivity</string>
     <string name="title_activity_main">MainActivity</string>
 

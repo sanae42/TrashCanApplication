@@ -75,7 +75,7 @@ public class LoginActivity extends BaseActivity {
             public void onClick(View view) {
                 //展示进度条
                 try{
-                    progressDialog = ProgressDialog.show(LoginActivity.this,"加载中","正在努力加载");
+                    progressDialog = ProgressDialog.show(LoginActivity.this,"loading","Loading data from the server");
                 }catch (Exception e){
                     Log.d("进度条窗口闪退", e.getMessage());
                 }
@@ -133,14 +133,14 @@ public class LoginActivity extends BaseActivity {
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
-                    Toast.makeText(getApplicationContext(), "登录成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Login succeeded", Toast.LENGTH_SHORT).show();
                     //回到主活动
                     ActivityCollector.backToMainActivity();
                 }else {
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
-                    Toast.makeText(getApplicationContext(), "登录失败", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Login failed", Toast.LENGTH_SHORT).show();
                 }
             }
 

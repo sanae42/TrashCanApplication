@@ -40,7 +40,7 @@
                 android:layout_marginRight="30dp"
                 android:layout_marginBottom="20dp"
                 android:ems="10"
-                android:hint="请输入用户名"
+                android:hint="please input username"
                 android:inputType="textPersonName"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp" />
@@ -52,20 +52,20 @@
                 android:layout_marginLeft="30dp"
                 android:layout_marginRight="30dp"
                 android:ems="10"
-                android:hint="请输入密码"
+                android:hint="please input password"
                 android:inputType="textPassword"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp" />
 
 
-            <TextView
-                android:id="@+id/Forgetpassword"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="right"
-                android:layout_marginTop="10dp"
-                android:layout_marginRight="25dp"
-                android:text="忘记密码" />
+<!--            <TextView-->
+<!--                android:id="@+id/Forgetpassword"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="wrap_content"-->
+<!--                android:layout_gravity="right"-->
+<!--                android:layout_marginTop="10dp"-->
+<!--                android:layout_marginRight="25dp"-->
+<!--                android:text="忘记密码" />-->
         </LinearLayout>
 
         <LinearLayout
@@ -82,7 +82,7 @@
                 android:layout_marginRight="30dp"
                 android:layout_marginBottom="20dp"
                 android:background="?attr/colorPrimary"
-                android:text="登 录"
+                android:text="login"
                 android:textColor="#FFFFFB"
                 android:textSize="18sp" />
 
@@ -93,7 +93,7 @@
                 android:layout_marginLeft="30dp"
                 android:layout_marginRight="30dp"
                 android:background="#FFFFFB"
-                android:text="注 册"
+                android:text="register"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="18sp" />
 

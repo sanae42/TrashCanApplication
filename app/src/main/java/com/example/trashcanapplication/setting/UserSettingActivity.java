@@ -170,9 +170,9 @@ public class UserSettingActivity extends BaseActivity {
                 new AlertDialog.Builder(UserSettingActivity.this);
         final View dialogView = LayoutInflater.from(UserSettingActivity.this)
                 .inflate(R.layout.dialog_edit_userid,null);
-        customizeDialog.setTitle("设置用户名");
+        customizeDialog.setTitle("edit username");
         customizeDialog.setView(dialogView);
-        customizeDialog.setPositiveButton("确定",
+        customizeDialog.setPositiveButton("submit",
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
@@ -225,9 +225,9 @@ public class UserSettingActivity extends BaseActivity {
                 new AlertDialog.Builder(UserSettingActivity.this);
         final View dialogView = LayoutInflater.from(UserSettingActivity.this)
                 .inflate(R.layout.dialog_edit_password,null);
-        customizeDialog.setTitle("设置密码");
+        customizeDialog.setTitle("edit password");
         customizeDialog.setView(dialogView);
-        customizeDialog.setPositiveButton("确定",
+        customizeDialog.setPositiveButton("submit",
                 new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {

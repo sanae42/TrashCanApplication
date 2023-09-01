@@ -37,9 +37,9 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="通知设置"
+                android:text="notification setting"
                 android:textColor="@color/darkgray"
-                android:textSize="16sp"
+                android:textSize="14sp"
                 android:layout_marginLeft="10sp">
 
             </TextView>
@@ -75,11 +75,11 @@
                 <!--item中间部分的文字-->
                 <TextView
                     android:layout_width="0dp"
-                    android:text="后台提醒即将开始的会议"
+                    android:text="Reminder of emergency in the background"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="8dp"
                     android:layout_weight="1"
-                    android:textSize="18sp" />
+                    android:textSize="16sp" />
 
                 <!--item 中间部分的输入框（有则显示五则隐藏，默认隐藏）-->
                 <!--            <EditText-->

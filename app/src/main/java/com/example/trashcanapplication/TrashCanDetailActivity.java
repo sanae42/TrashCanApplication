@@ -175,7 +175,7 @@ public class TrashCanDetailActivity extends BaseActivity {
 
         //展示进度条
         try{
-            progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
+            progressDialog = ProgressDialog.show(this,"loading","Loading data from the server");
         }catch (Exception e){
             Log.d("进度条窗口闪退", e.getMessage());
         }
@@ -254,7 +254,7 @@ public class TrashCanDetailActivity extends BaseActivity {
 //    https://blog.csdn.net/qq_29848853/article/details/130868720
 //    file:///C:/Users/admin/Downloads/android%E6%97%B6%E9%97%B4%E5%9D%90%E6%A0%87%E6%8A%98%E7%BA%BF%E5%9B%BEMPAndr%20(1).html
         //TODO：改写横坐标格式，但是这种方法有可能会有重复的横坐标
-        SimpleDateFormat mFormat = new SimpleDateFormat("M月d");
+        SimpleDateFormat mFormat = new SimpleDateFormat("M.d");
         lineChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter() {
             @Override
             public String getFormattedValue(float value) {

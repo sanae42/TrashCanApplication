@@ -40,7 +40,7 @@
                 android:layout_marginRight="30dp"
                 android:layout_marginBottom="20dp"
                 android:ems="10"
-                android:hint="请输入用户名"
+                android:hint="please input username"
                 android:inputType="textPersonName"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp" />
@@ -53,7 +53,7 @@
                 android:layout_marginRight="30dp"
                 android:layout_marginBottom="20dp"
                 android:ems="10"
-                android:hint="请输入密码"
+                android:hint="please input password"
                 android:inputType="textPassword"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp" />
@@ -66,7 +66,7 @@
                 android:layout_marginRight="30dp"
                 android:layout_marginBottom="30dp"
                 android:ems="10"
-                android:hint="请再次输入密码"
+                android:hint="please confirm password"
                 android:inputType="textPassword"
                 android:paddingLeft="20dp"
                 android:paddingRight="20dp" />
@@ -88,7 +88,7 @@
                 android:layout_marginLeft="30dp"
                 android:layout_marginRight="30dp"
                 android:background="#FFFFFB"
-                android:text="注 册"
+                android:text="register"
                 android:textColor="?attr/colorPrimary"
                 android:textSize="18sp" />
 

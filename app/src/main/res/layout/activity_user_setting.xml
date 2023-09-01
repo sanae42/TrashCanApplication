@@ -62,7 +62,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="12dp"
                     android:layout_weight="1"
-                    android:text="用户名修改"
+                    android:text="edit username"
                     android:textSize="18sp" />
 
                 <!--item 中间部分的输入框（有则显示五则隐藏，默认隐藏）-->
@@ -129,7 +129,7 @@
                 <!--item中间部分的文字-->
                 <TextView
                     android:layout_width="0dp"
-                    android:text="密码修改"
+                    android:text="edit password"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="12dp"
                     android:layout_weight="1"
@@ -201,7 +201,7 @@
                 <!--item中间部分的文字-->
                 <TextView
                     android:layout_width="0dp"
-                    android:text="退出登陆"
+                    android:text="log out"
                     android:layout_height="wrap_content"
                     android:layout_marginLeft="12dp"
                     android:layout_weight="1"
