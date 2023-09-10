@@ -42,8 +42,8 @@ public class UserSettingActivity extends BaseActivity {
     Toolbar toolbar;
 
     private MyMqttClient myMQTTClient;
-    private static Integer Id = 1;
-    private String ClientId = "Android/"+Id;
+    private static String IP;
+    private String ClientId;
 
     //进度条窗口
     private ProgressDialog progressDialog;
@@ -60,6 +60,10 @@ public class UserSettingActivity extends BaseActivity {
 
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
+
+        //从SharedPerformance获取IP
+        IP = pref.getString("ipStr","");
+        ClientId = "Android/"+IP;
 
         //使用EventBus与线程交流
         EventBus.getDefault().register(this);

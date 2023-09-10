@@ -3,10 +3,12 @@ package com.example.trashcanapplication;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.preference.PreferenceManager;
 
 import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
@@ -60,10 +62,14 @@ public class TrashCanDetailActivity extends BaseActivity {
 
     JSONObject jsonData;
 
+    //sp数据库 存放应用设置状态
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
+
     //MQTT
     private MyMqttClient myMQTTClient = null;
-    private static Integer Id = 1;
-    private String ClientId = "Android/"+Id;
+    private static String IP;
+    private String ClientId;
 
     //折线图的下拉选择器
     private Spinner spinnerLinechart;
@@ -147,6 +153,10 @@ public class TrashCanDetailActivity extends BaseActivity {
             }
         });
 
+        // SharedPreference
+        pref = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = pref.edit();
+
         //折线图表组件
         lineChart = findViewById(R.id.line_chart);
         //初始化图表
@@ -162,6 +172,10 @@ public class TrashCanDetailActivity extends BaseActivity {
         EventBus.getDefault().register(this);
         //向服务器发送垃圾桶数据请求
         JSONObject jsonObject = new JSONObject();
+
+        //从SharedPerformance获取IP
+        IP = pref.getString("ipStr","");
+        ClientId = "Android/"+IP;
 
         try {
             jsonObject.put("dataType", "trashCanDataRequest");

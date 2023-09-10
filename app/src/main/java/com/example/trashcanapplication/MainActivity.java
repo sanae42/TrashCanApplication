@@ -94,6 +94,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     //登录状态
@@ -110,8 +112,8 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     GoogleMap googleMap;
     //MQTT
     private MyMqttClient myMQTTClient;
-    private static Integer Id = 1;
-    private String ClientId = "Android/"+Id;
+    private static String IP;
+    private String ClientId;
 
     JSONObject jsonData;
 
@@ -154,12 +156,45 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 Toast.makeText(MainActivity.this, "google play 服务不可用", Toast.LENGTH_SHORT).show();
             }
         }
+
+        // SharedPreference
+        pref = PreferenceManager.getDefaultSharedPreferences(this);
+        editor = pref.edit();
+
         /* -------------------------------------------------------------------------------------- */
+
+        //TODO:刚启动应用时为sp的IP字段设置IP地址，并订阅，之后与服务器沟通都是通过此地址
+        ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Service.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = cm.getActiveNetworkInfo();
+        List<LinkAddress> linkAddresses = cm.getLinkProperties(cm.getActiveNetwork()).getLinkAddresses();
+        //获取当前连接的网络ip地址信息
+        if(linkAddresses != null && !linkAddresses.isEmpty()){
+            //判断ip地址的正则表达
+            String ipRegEx = "^([1-9]|([1-9][0-9])|(1[0-9][0-9])|(2[0-4][0-9])|(25[0-5]))(\\.([0-9]|([1-9][0-9])|(1[0-9][0-9])|(2[0-4][0-9])|(25[0-5]))){3}$";
+            Pattern pattern = Pattern.compile(ipRegEx);
+            for (int i = 0; i < linkAddresses.size(); i++) {
+                InetAddress address = linkAddresses.get(i).getAddress();
+                String ipStr = address.getHostAddress();
+                Matcher matcher = pattern.matcher(ipStr);
+                if (matcher.matches()){
+//                    Toast.makeText(MainActivity.this, ipStr, Toast.LENGTH_SHORT).show();
+                    editor.putString("ipStr", ipStr);
+                    editor.apply();
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------------------------------- */
+        //从SharedPerformance获取IP
+        IP = pref.getString("ipStr","");
+        ClientId = "Android/"+IP;
+
         myMQTTClient = MyMqttClient.getInstance();
         //初始化连接
-        myMQTTClient.start();
+        myMQTTClient.start(ClientId);
         //订阅主题
         myMQTTClient.subTopic("MQTTServerPub");
+
         myMQTTClient.subTopic(ClientId);
         myMQTTClient.publishMessage("testtopic/1", "安卓客户端连接测试", 0);
         /* -------------------------------------------------------------------------------------- */
@@ -168,10 +203,6 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 //        https://blog.csdn.net/x97666/article/details/125172129
 //        https://blog.csdn.net/android410223Sun/article/details/123183448
         EventBus.getDefault().register(this);
-
-        // SharedPreference
-        pref = PreferenceManager.getDefaultSharedPreferences(this);
-        editor = pref.edit();
 
         refreshViewAccordingToLoginState();
 
@@ -197,23 +228,6 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             //6000ms执行一次
             timer.schedule(task, 6000);
         }
-
-
-        //TODO:刚启动应用时为sp的IP字段设置IP地址，并订阅，之后与服务器沟通都是通过此地址
-        ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Service.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetworkInfo = cm.getActiveNetworkInfo();
-        List<LinkAddress> linkAddresses = cm.getLinkProperties(cm.getActiveNetwork()).getLinkAddresses();
-//获取当前连接的网络ip地址信息
-        if(linkAddresses != null && !linkAddresses.isEmpty()){
-//注意：同时可以查看到两个网口的信息，但是ip地址不是固定的位置（即下标）
-//所以遍历的时候需要判断一下当前获取的ip地址是否符合ip地址的正则表达式
-            for (int i = 0; i < linkAddresses.size(); i++) {
-                InetAddress address = linkAddresses.get(i).getAddress();
-//判断ip地址的正则表达
-                Log.d("IP地址", address.getHostAddress());
-            }
-        }
-
 
         //TODO:service不可用
 //        //如果允许后台通知则开始应用后开启通知服务

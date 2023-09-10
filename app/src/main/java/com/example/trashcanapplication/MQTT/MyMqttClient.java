@@ -2,6 +2,7 @@ package com.example.trashcanapplication.MQTT;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.preference.PreferenceManager;
 
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -23,8 +24,7 @@ public class MyMqttClient {
     private static MqttClient mqttClient = null;
     private static MemoryPersistence memoryPersistence = null;
     private static MqttConnectOptions mqttConnectOptions = null;
-    private static Integer Id = 1;
-    private String ClientId = "Android/"+Id;
+    private String ClientId;
     private static String IP = "47.98.247.122";
     private static List<String> TopicList = new ArrayList<String>();
 
@@ -52,7 +52,9 @@ public class MyMqttClient {
     }
 
     //初始化连接
-    public void start() {
+    public void start(String id) {
+        ClientId = id;
+
         //初始化连接设置对象
         mqttConnectOptions = new MqttConnectOptions();
         //设置是否清空session,这里如果设置为false表示服务器会保留客户端的连接记录，这里设置为true表示每次连接到服务器都以新的身份连接
@@ -181,7 +183,7 @@ public class MyMqttClient {
                 System.out.println("mqttClient is null or connect");
             }
         }else {
-            start();
+            start(ClientId);
         }
     }
     /**订阅主题*/
