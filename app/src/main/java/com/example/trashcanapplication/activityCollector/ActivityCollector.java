@@ -8,9 +8,11 @@ import com.example.trashcanapplication.MainActivity;
 import java.util.ArrayList;
 import java.util.List;
 
-//活动管理器
+/**
+ * @Title：ActivityCollector.java
+ * @Description: Activity collector, which temporarily stores activities through a List
+ */
 public class ActivityCollector {
-    //通过一个List来暂存活动
     public static List<AppCompatActivity> activities = new ArrayList<AppCompatActivity>();
 
     public static void addActivity(AppCompatActivity activity) {

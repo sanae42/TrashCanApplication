@@ -2,6 +2,7 @@ package com.example.trashcanapplication.MQTT;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.preference.PreferenceManager;
 
 import org.eclipse.paho.client.mqttv3.MqttCallback;
 import org.eclipse.paho.client.mqttv3.MqttClient;
@@ -19,17 +20,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 
+/**
+ * @Title：MyMqttClient.java
+ * @Description: A Java class that manages MQTT connections, subscription topics, and message sending and receiving
+ * @author P Geng
+ * Refer to: https://www.emqx.io/docs/en/v5.1/connect-emqx/java.html#paho-java-usage-example
+ *           https://blog.csdn.net/a123123sdf/article/details/120948170
+ */
 public class MyMqttClient {
     private static MqttClient mqttClient = null;
     private static MemoryPersistence memoryPersistence = null;
     private static MqttConnectOptions mqttConnectOptions = null;
-    private static Integer Id = 1;
-    private String ClientId = "Android/"+Id;
+    private String ClientId;
     private static String IP = "47.98.247.122";
     private static List<String> TopicList = new ArrayList<String>();
 
-    //volatile 修饰的成员变量在每次被线程访问时，都强制从共享内存中重新读取该成员变量的值。
-    // 而且，当成员变量发生变化时，会强制线程将变化值回写到共享内存。这样在任何时刻，两个不同的线程总是看到某个成员变量的同一个值。
     private static volatile MyMqttClient mInstance = null;
 
     private MqttCallback mqttCallback;
@@ -38,7 +43,9 @@ public class MyMqttClient {
         mqttCallback = new MQTTReceiveCallback();
     }
 
-    //获得对象的静态方法
+    /**
+     * Obtain a singleton of a class
+     */
     public static MyMqttClient getInstance() {
         if (mInstance == null) {
             //https://blog.csdn.net/cgsyck/article/details/106251614
@@ -51,23 +58,29 @@ public class MyMqttClient {
         return mInstance;
     }
 
-    //初始化连接
-    public void start() {
-        //初始化连接设置对象
+    /**
+     * The method used for initialization is called in main() of the program
+     */
+    public void start(String id) {
+        ClientId = id;
+
+        //Initialize mqttConnectOptions
         mqttConnectOptions = new MqttConnectOptions();
-        //设置是否清空session,这里如果设置为false表示服务器会保留客户端的连接记录，这里设置为true表示每次连接到服务器都以新的身份连接
+        //Set whether to clear the session. If set to false here, it means that the server will keep the connection records of the client.
+        // If set to true here, it means that every time it connects to the server, it will connect with a new identity
         mqttConnectOptions.setCleanSession(true);
-        //设置连接超时时间，单位是秒
+        ////Set the connection timeout in seconds
         mqttConnectOptions.setConnectionTimeout(10);
-        //自动重连
-//        mqttConnectOptions.setAutomaticReconnect(true);
-        // 设置超时时间 单位为秒
+        //Automatic reconnection(Not used here)
+        //        mqttConnectOptions.setAutomaticReconnect(true);
+        // Set the timeout time in seconds
         mqttConnectOptions.setConnectionTimeout(10);
-        // 设置会话心跳时间 单位为秒 服务器会每隔1.5*20秒的时间向客户端发送个消息判断客户端是否在线，但这个方法并没有重连的机制
+        // Set the session heartbeat time unit to seconds. The server will send a message to the client every 1.5 * 20 seconds
+        // to determine whether the client is online, but this method does not have a reconnection mechanism
         mqttConnectOptions.setKeepAliveInterval(20);
-        //设置持久化方式
+        //Set persistence method
         memoryPersistence = new MemoryPersistence();
-        // 设置客户端名称
+        // Set client name
         mqttConnectOptions.setUserName(ClientId);
 
         try {
@@ -76,30 +89,30 @@ public class MyMqttClient {
             e.printStackTrace();
         }
 
-        //设置连接和回调
         if(null != mqttClient) {
             if(!mqttClient.isConnected()) {
-                //添加回调函数
+                //Add callback method
                 mqttClient.setCallback(mqttCallback);
-                //创建连接
+                //Create a connection
                 try {
-                    System.out.println("创建连接");
                     mqttClient.connect(MyMqttClient.mqttConnectOptions);
                 } catch (MqttException e) {
-                    // TODO Auto-generated catch block
+                    // Auto-generated catch block
                     e.printStackTrace();
                 }
 
             }
         }else {
-            System.out.println("mqttClient为空");
+            System.out.println("mqttClient is null");
         }
-        System.out.println("连接状态"+mqttClient.isConnected());
+        System.out.println("Connection status: "+mqttClient.isConnected());
     }
 
-    //关闭连接
+    /**
+     * Close the connection
+     */
     public void closeConnect() {
-        //关闭存储方式
+        //close memoryPersistence
         if(null != memoryPersistence) {
             try {
                 memoryPersistence.close();
@@ -110,7 +123,7 @@ public class MyMqttClient {
             System.out.println("memoryPersistence is null");
         }
 
-        //关闭连接
+        //close connection
         if(null != mqttClient) {
             if(mqttClient.isConnected()) {
                 try {
@@ -127,7 +140,9 @@ public class MyMqttClient {
         }
     }
 
-    //发布消息
+    /**
+     * Publish Message
+     */
     public void publishMessage(String pubTopic, String message, int qos) {
         if(null != mqttClient&& mqttClient.isConnected()) {
             MqttMessage mqttMessage = new MqttMessage();
@@ -140,10 +155,10 @@ public class MyMqttClient {
                 try {
                     MqttDeliveryToken publish = topic.publish(mqttMessage);
                     if(!publish.isComplete()) {
-                        System.out.print("消息发布成功:");
-                        System.out.print("   主题:"+pubTopic);
+                        System.out.print("Sent a message:");
+                        System.out.print("   topic:"+pubTopic);
                         System.out.print("   qos:"+qos);
-                        System.out.println("   内容:"+message);
+                        System.out.println("   content:"+message);
                     }
                 } catch (MqttException e) {
                     e.printStackTrace();
@@ -154,12 +169,14 @@ public class MyMqttClient {
         }
     }
 
-    //重新连接
+    /**
+     * Reconnect
+     */
     public void reConnect() {
         if(null != mqttClient) {
             if(!mqttClient.isConnected()) {
                 if(null != mqttConnectOptions) {
-                    //需要在重连后重新绑定callback和重新订阅
+                    //Need to rebind callback and resubscribe after reconnection
                     mqttClient.setCallback(mqttCallback);
                     try {
                         mqttClient.connect(mqttConnectOptions);
@@ -168,7 +185,7 @@ public class MyMqttClient {
                     }
                     for(String topic : TopicList){
                         try {
-                            //默认qos1
+                            //default qos1
                             mqttClient.subscribe(topic,1);
                         } catch (MqttException e) {
                             throw new RuntimeException(e);
@@ -181,16 +198,19 @@ public class MyMqttClient {
                 System.out.println("mqttClient is null or connect");
             }
         }else {
-            start();
+            start(ClientId);
         }
     }
-    /**订阅主题*/
+
+    /**
+     * Subscribe topic
+     */
     public void subTopic(String t) {
         if(null != mqttClient&& mqttClient.isConnected()) {
             try {
-                //主题列表里加上该主题
+                //Add the topic to the topic list
                 TopicList.add(t);
-                //默认qos为1
+                //default qos 1
                 mqttClient.subscribe(t, 1);
             } catch (MqttException e) {
                 e.printStackTrace();
@@ -200,23 +220,9 @@ public class MyMqttClient {
         }
     }
 
-    //清空主题
-    public void cleanTopic(String topic) {
-        if(null != mqttClient&& !mqttClient.isConnected()) {
-            try {
-                //主题列表里删除该主题
-                TopicList.remove(topic);
-                mqttClient.unsubscribe(topic);
-            } catch (MqttException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }else {
-            System.out.println("mqttClient is error");
-        }
-    }
-
-    //释放单例, 及其所引用的资源
+    /**
+     * Release singleton and its referenced resources
+     */
     public static void release() {
         try {
             if (mInstance != null) {

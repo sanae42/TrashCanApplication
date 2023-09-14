@@ -12,12 +12,12 @@
 <!--        android:icon="@drawable/ic_delete"-->
 <!--        android:title="Delete"-->
 <!--        app:showAsAction="ifRoom"/>-->
-    <item
-        android:id="@+id/button1"
-        android:title="button1"
-        app:showAsAction="never"/>
-    <item
-        android:id="@+id/button2"
-        android:title="button1"
-        app:showAsAction="never"/>
+<!--    <item-->
+<!--        android:id="@+id/button1"-->
+<!--        android:title="button1"-->
+<!--        app:showAsAction="never"/>-->
+<!--    <item-->
+<!--        android:id="@+id/button2"-->
+<!--        android:title="button1"-->
+<!--        app:showAsAction="never"/>-->
 </menu>

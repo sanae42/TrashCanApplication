@@ -10,7 +10,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url 'https://jitpack.io' } //图表库依赖
+        maven { url 'https://jitpack.io' } //Chart Library Dependencies
     }
 }
 rootProject.name = "TrashCanApplication"

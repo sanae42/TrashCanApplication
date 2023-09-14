@@ -5,6 +5,8 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.core.view.GravityCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -12,7 +14,11 @@ import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.app.Dialog;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
+import android.app.Service;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -25,6 +31,9 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.LinkAddress;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -45,9 +54,11 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.trashcanapplication.MQTT.MyMqttClient;
+import com.example.trashcanapplication.about.AboutActivity;
 import com.example.trashcanapplication.activityCollector.BaseActivity;
 import com.example.trashcanapplication.login.LoginActivity;
 import com.example.trashcanapplication.setting.SettingActivity;
+import com.example.trashcanapplication.setting.UserSettingActivity;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.maps.CameraUpdate;
@@ -76,53 +87,65 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+/**
+ * @Title：MainActivity.java
+ * @Description: The main activity is the first activity of the application,
+ * essential functions in the application are placed on the main activity interface,
+ * and there are also entrances to other activities on the its interface.
+ * @author P Geng
+ */
 public class MainActivity extends BaseActivity implements OnMapReadyCallback {
-    //登录状态
+    //Login status
     private Boolean ifLogin;
 
-    //sp数据库 存放应用设置状态
+    //SharedPreferences
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
-    //是否完成授权
+    //If authorization been completed
     Boolean isPermissionGranter;
-    //谷歌地图控件
+
+    //Google Maps component
     MapView mapView;
     GoogleMap googleMap;
-    //MQTT
+
+    //MQTT related
     private MyMqttClient myMQTTClient;
-    private static Integer Id = 1;
-    private String ClientId = "Android/"+Id;
+    private static String IP;
+    private String ClientId;
 
     JSONObject jsonData;
 
-    //主界面主体布局
+    //Main interface layout during login and when not logged in
     private NestedScrollView loggedMainView;
     private RelativeLayout unloggedMainView;
 
-    //搜索栏
+    //Search bar
     private SearchView mSearchView = null;
-    //    侧边栏
+    //sidebar
     private DrawerLayout mDrawerLayout;
-    //  侧边栏头部布局
+    //Sidebar header layout
     private View headview;
     RelativeLayout loggedHeaderLayout;
     RelativeLayout unloggedHeaderLayout;
-    //数字输入框
+    //input box
     private EditText editText;
-    //进度条窗口
+    //Progress Dialog
     private ProgressDialog progressDialog;
 
-    //垃圾桶信息列表
+    //Trash can information list
     private List<TrashCanBean> trashCanList = new ArrayList();
-    //地图标点列表
+    //Map marker list
     private List<Marker> markerList = new ArrayList();
 
     @Override
@@ -142,37 +165,61 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 Toast.makeText(MainActivity.this, "google play 服务不可用", Toast.LENGTH_SHORT).show();
             }
         }
-        /* -------------------------------------------------------------------------------------- */
-        myMQTTClient = MyMqttClient.getInstance();
-        //初始化连接
-        myMQTTClient.start();
-        //订阅主题
-        myMQTTClient.subTopic("MQTTServerPub");
-        myMQTTClient.subTopic(ClientId);
-        myMQTTClient.publishMessage("testtopic/1", "安卓客户端连接测试", 0);
-        /* -------------------------------------------------------------------------------------- */
-        //使用EventBus与线程交流
-        //TODO：也可以使用handler
-//        https://blog.csdn.net/x97666/article/details/125172129
-//        https://blog.csdn.net/android410223Sun/article/details/123183448
-        EventBus.getDefault().register(this);
 
         // SharedPreference
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
 
+        /* -------------------------------------------------------------------------------------- */
+
+        // At the beginning of the application, set the current IP address for the IP field of SharedPreference and subscribe to this topic.
+        // Afterwards, communicate with the server through this topic
+        ConnectivityManager cm = (ConnectivityManager) getApplicationContext().getSystemService(Service.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = cm.getActiveNetworkInfo();
+        List<LinkAddress> linkAddresses = cm.getLinkProperties(cm.getActiveNetwork()).getLinkAddresses();
+        //Obtain the network IP address information of the current connection
+        if(linkAddresses != null && !linkAddresses.isEmpty()){
+            //Use a regular expression to determine whether the IP address meets the requirements.
+            String ipRegEx = "^([1-9]|([1-9][0-9])|(1[0-9][0-9])|(2[0-4][0-9])|(25[0-5]))(\\.([0-9]|([1-9][0-9])|(1[0-9][0-9])|(2[0-4][0-9])|(25[0-5]))){3}$";
+            Pattern pattern = Pattern.compile(ipRegEx);
+            for (int i = 0; i < linkAddresses.size(); i++) {
+                InetAddress address = linkAddresses.get(i).getAddress();
+                String ipStr = address.getHostAddress();
+                Matcher matcher = pattern.matcher(ipStr);
+                if (matcher.matches()){
+                    editor.putString("ipStr", ipStr);
+                    editor.apply();
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------------------------------- */
+        //get IP address from SharedPerformance
+        IP = pref.getString("ipStr","");
+        ClientId = "Android/"+IP;
+
+        myMQTTClient = MyMqttClient.getInstance();
+        //start the connection to server
+        myMQTTClient.start(ClientId);
+        //subscribe the topic to receive messages from the server
+        myMQTTClient.subTopic("MQTTServerPub");
+        myMQTTClient.subTopic(ClientId);
+        myMQTTClient.publishMessage("testtopic/1", "android connection test", 0);
+        /* -------------------------------------------------------------------------------------- */
+        //Use EventBus to communicate with threads
+        EventBus.getDefault().register(this);
+
         refreshViewAccordingToLoginState();
 
-
-        //如果登陆，展示进度条
+        //If logged in, display progress bar
         if(ifLogin){
             try{
-                progressDialog = ProgressDialog.show(this,"加载中","正在努力加载");
+                progressDialog = ProgressDialog.show(this,"loading","Loading data from the server");
             }catch (Exception e){
-                Log.d("进度条窗口闪退", e.getMessage());
+                Log.d("The progress bar window flashes back.", e.getMessage());
             }
             Timer timer = new Timer();
-            //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
+            //TimerTask belongs to a child thread and cannot execute toast “Can't toast on a thread that has not called Looper.prepare()”
             TimerTask task = new TimerTask() {
                 @Override
                 public void run() {
@@ -182,48 +229,45 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                     timer.cancel();
                 }
             };
-            //6000ms执行一次
+            //Execute once every 6000ms
             timer.schedule(task, 6000);
         }
     }
 
     /**
-     * 初始化控件
+     * Initialize components
      */
     private void initiateView(){
-        //主界面主体布局
+        //Main interface layout
         loggedMainView = (NestedScrollView)findViewById(R.id.logged_main_view);
         unloggedMainView = (RelativeLayout)findViewById(R.id.unlogged_main_view);
-        //谷歌地图视图
+        //Google Maps component
         mapView = findViewById(R.id.mapView);
-        //搜索栏
+        //Search bar
         mSearchView = (SearchView) findViewById(R.id.searchView);
-        //去除搜索栏底部横线
+        //Remove the horizontal line at the bottom of the search bar
         if (mSearchView != null) {
-            try {        //--拿到字节码
+            try {
                 Class<?> argClass = mSearchView.getClass();
-                //--指定某个私有属性,mSearchPlate是搜索框父布局的名字
                 Field ownField = argClass.getDeclaredField("mSearchPlate");
-                //--暴力反射,只有暴力反射才能拿到私有属性
                 ownField.setAccessible(true);
                 View mView = (View) ownField.get(mSearchView);
-                //--设置背景
                 mView.setBackgroundColor(getColor(R.color.transparent));
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        //设置搜索栏监听
+        //Set search bar listening
         mSearchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String s) {
                 if (s != null) {
                     if (isNumber(s)) {
-                        //搜索的是数字
+                        //If the search is for numbers
                         int num = Integer.parseInt(s);
                         boolean ifFind = false;
                         for(Marker marker: markerList){
-                            //从所有marker中找到所需marker，移动到对应位置，并显示对应信息窗口
+                            //Find the desired marker from all the markers, move to the corresponding position, and display the corresponding information window
                             TrashCanBean bean = (TrashCanBean)marker.getTag();
                             if(bean .getId() == num){
                                 LatLng latLng = new LatLng(bean.getLatitude(), bean.getLongitude());
@@ -239,8 +283,8 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                             Toast.makeText(MainActivity.this, "未找到垃圾桶："+num, Toast.LENGTH_SHORT).show();
                         }
                     } else {
-                        //搜索的是字符
-                        //Geocoder：根据经纬度获取详细地址信息 / 根据详细地址获取经纬度信息
+                        //If the search is for characters
+                        //Geocoder：Obtain detailed address information based on longitude and latitude/Obtain longitude and latitude information based on detailed address
                         Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
                         try {
                             List<Address> addressList = geocoder.getFromLocationName(s, 1);
@@ -250,7 +294,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                                 markerOptions.title("Search Position");
                                 markerOptions.position(latLng);
                                 googleMap.addMarker(markerOptions);
-                                // 移动相机视角
+                                // Mobile camera perspective
                                 CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
                                 googleMap.animateCamera(cameraUpdate);
                             }
@@ -269,15 +313,14 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             }
         });
 
-        //        导航条
+        //        toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        设置actionbar相同功能
         setSupportActionBar(toolbar);
 
-        //数字输入文本框
+        //Number input text box
         editText = (EditText) findViewById(R.id.trashcans_tobefilled_edittext);
         editText.setText("0");
-        //只能输入数字和小数点
+        //Only numbers and decimal points can be entered
         editText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         editText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -299,47 +342,44 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             }
         });
 
-        //    侧边栏布局
+        //    Sidebar Layout
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        //   获取actionbar实例，设置actionbar（即toolbar）最左侧按钮功能，点击唤出侧边栏
+        //   Obtain the actionbar instance, set the leftmost button function of the actionbar (i.e. toolbar),
+        //   and click to call up the sidebar
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
             actionBar.setHomeAsUpIndicator(R.drawable.baseline_menu_24);
             actionBar.setDisplayShowTitleEnabled(false);
         }
-        //  设置NavigationView布局
+        //  Set NavigationView Layout
         NavigationView navView = (NavigationView) findViewById(R.id.nav_view);
         navView.setNavigationItemSelectedListener(new NavigationView.OnNavigationItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
-                if(id == R.id.nav_chat){
-                    if(!ifLogin){
-                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
-                    }else {
-                        Toast.makeText(MainActivity.this, "点击了nav_chat", Toast.LENGTH_SHORT).show();
-                    }
-                }
                 if(id == R.id.nav_user){
                     if(!ifLogin){
-                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "please login", Toast.LENGTH_SHORT).show();
                     }else {
-                        Toast.makeText(MainActivity.this, "点击了nav_user", Toast.LENGTH_SHORT).show();
+                        Intent intent = new Intent();
+                        intent.setClass(getApplicationContext(), UserSettingActivity.class);
+                        startActivity(intent);
                     }
                 }
                 if(id == R.id.nav_setting){
                     if(!ifLogin){
-                        Toast.makeText(MainActivity.this, "请先登录", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "please login", Toast.LENGTH_SHORT).show();
                     }else {
-//                        Toast.makeText(MainActivity.this, "点击了nav_setting", Toast.LENGTH_SHORT).show();
                         Intent intent = new Intent();
                         intent.setClass(getApplicationContext(), SettingActivity.class);
                         startActivity(intent);
                     }
                 }
-                if(id == R.id.nav_more){
-                    Toast.makeText(MainActivity.this, "点击了nav_more", Toast.LENGTH_SHORT).show();
+                if(id == R.id.nav_about){
+                    Intent intent = new Intent();
+                    intent.setClass(getApplicationContext(), AboutActivity.class);
+                    startActivity(intent);
                 }
                 return true;
             }
@@ -360,7 +400,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /**
-     * 根据登录状态刷新布局
+     * Refresh layout based on login status
      */
     private void refreshViewAccordingToLoginState(){
         ifLogin = pref.getBoolean("ifLogin", false);
@@ -380,7 +420,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /**
-     * 根据输入的hour刷新plan布局
+     * Refresh the plan layout based on the input hour
      */
     public void refreshPlanView(){
         if(trashCanList==null){
@@ -395,7 +435,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         List<TrashCanBean> toBeFilledList = new ArrayList<>();
         for(TrashCanBean bean : trashCanList){
             double percentage = (double)(bean.getDepth()-bean.getDistance()) / (double)bean.getDepth();
-            //认为0.9为满
+            //Consider 0.9 as full
             double time = (double)(0.9-percentage) * bean.getEstimatedTime();
             double instability = Math.log( 1 + Math.pow(bean.getVariance(), 0.5) );
             if((double)(0.9-percentage) * bean.getEstimatedTime() - instability < hour){
@@ -418,11 +458,11 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             toBeFilledListTextView.setText(str);
             toBeFilledListTextView.setVisibility(View.VISIBLE);
 
-            //清空地图标记列表
+            //Clear Map marker List
             markerList.clear();
-            //会导致打开的infowindow关闭
+            //Will cause the open infowindow to close！
             googleMap.clear();
-            //刷新地图标记
+            //Refresh map markers
             setMarkerIcon(planIdList);
         }else {
             toBeFilledNumberTextView.setText("it is expected that no trash can will be filled");
@@ -432,26 +472,26 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /**
-     * 菜单按键监听，此处菜单即toolbar上一系列按键
+     * Menu button monitoring, where the menu is a series of buttons on the toolbar
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-        //开启侧边栏
+        //Open sidebar
         if(id == android.R.id.home){
             mDrawerLayout.openDrawer(GravityCompat.START);
         }
-        if(id == R.id.button1){
-            Toast.makeText(MainActivity.this, "点击了button1", Toast.LENGTH_SHORT).show();
-        }
-        if(id == R.id.button2){
-            Toast.makeText(MainActivity.this, "点击了button2", Toast.LENGTH_SHORT).show();
-        }
+//        if(id == R.id.button1){
+//            Toast.makeText(MainActivity.this, "click button1", Toast.LENGTH_SHORT).show();
+//        }
+//        if(id == R.id.button2){
+//            Toast.makeText(MainActivity.this, "click button2", Toast.LENGTH_SHORT).show();
+//        }
         return true;
     }
 
     /**
-     * 菜单创建
+     * create menu
      */
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar, menu);
@@ -459,7 +499,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /**
-     * 判断是否为数字
+     * Determine if it is a number
      */
     private boolean isNumber(String str) {
         try {
@@ -471,22 +511,23 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /***
-     * EventBus回调
-     * 如果使用事件处理函数指定了线程模型为MainThread，那么不论事件是在哪个线程中发布出来的，
-     * 该事件处理函数都会在UI线程中执行。该方法可以用来更新UI，但是不能处理耗时操作。
-     * https://blog.csdn.net/weixin_42602900/article/details/127785935
+     *EventBus callback
+     *If the thread model is specified as MainThread using event handling functions,
+     * then regardless of which thread the event is published in
+     *This event handling function will be executed in the UI thread.
+     * This method can be used to update the UI, but it cannot handle time-consuming operations.
      */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String s) {
-        //TODO:此处需考虑JSON损坏，转换失败的情况
         // {"sender":"myMqttClient","dataType":"allTrashCanData","payload":[{"Id":1,"Distance":1179,"Humidity":54,"Temperature":23,"Latitude":52.445978,"Longitude":-1.935167,"Depth":100,"LastEmptyTime":{"date":26,"day":3,"hours":18,"minutes":38,"month":6,"nanos":0,"seconds":9,"time":1690393089000,"timezoneOffset":-60,"year":123},"EstimatedTime":58,"Variance":0,"LocationDescription":"Near the UOB South Gate","Mode":"1"},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156,"Depth":80,"LastEmptyTime":{"date":12,"day":3,"hours":1,"minutes":8,"month":6,"nanos":0,"seconds":40,"time":1689120520000,"timezoneOffset":-60,"year":123},"EstimatedTime":111,"Variance":222,"LocationDescription":"At the entrance of McDonald's","Mode":"2"}]}
         JSONObject j;
         try {
             j = new JSONObject(s);
             String sender = j.getString("sender");
             String dataType = j.getString("dataType");
-            //接收到的JSON数据为，全部垃圾桶状态数据
-            // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
+            //The received JSON data is, all trash can status data
+            ////The client sends data once a period of time, which causes the marker to refresh and the open infowindow to close;
+            // It can only receive data once during oncreate and then manually refresh it; Or no longer clear marker after
             if (sender.equals("myMqttClient") && dataType.equals("allTrashCanData")) {
                 if(!ifLogin){
                     return;
@@ -494,7 +535,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 jsonData = j;
                 refreshMapRelatedViewAfterReceiveJSONData();
                 refreshPlanView();
-                //加载完成，收起进度条
+                //Loading completed, retract progress bar
                 if(progressDialog!=null){
                     progressDialog.dismiss();
                 }
@@ -502,6 +543,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             if (sender.equals("myMqttClient") && dataType.equals("loginReplyData")) {
                 if(j.getString("result").equals("succeeded")){
                     editor.putBoolean("ifLogin", true);
+                    editor.putString("UserName", j.getString("UserName"));
                     editor.apply();
                     refreshViewAccordingToLoginState();
                 }else {
@@ -511,42 +553,55 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             if (sender.equals("myMqttClient") && dataType.equals("registerReplyData")) {
                 if(j.getString("result").equals("succeeded")){
                     editor.putBoolean("ifLogin", true);
+                    editor.putString("UserName", j.getString("UserName"));
                     editor.apply();
                     refreshViewAccordingToLoginState();
                 }else {
 
                 }
             }
+            if (sender.equals("myMqttClient") && dataType.equals("editUserNameReplyData")) {
+                if(j.getString("result").equals("succeeded")){
+                    editor.putString("UserName", j.getString("UserName"));
+                    editor.apply();
+                    refreshViewAccordingToLoginState();
+                }else {
+
+                }
+            }
+            if (sender.equals("application") && dataType.equals("exit")) {
+                refreshViewAccordingToLoginState();
+            }
 
         } catch (Exception e) {
-            Toast.makeText(MainActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
-            Log.d("登录问题", e.getMessage());
+            Toast.makeText(MainActivity.this, "JSON conversion error :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.d("Login Issues", e.getMessage());
         }
     }
 
     /**
-     * 收到JSON数据后刷新主活动相关布局
+     * Refresh the layout related to the main activity after receiving JSON data
      */
     private void refreshMapRelatedViewAfterReceiveJSONData(){
         String payload = null;
-        //地图布局
+
         try {
             payload = jsonData.getString("payload");
             JSONArray jsonArray = new JSONArray(payload);
 
-            //清空垃圾桶数据表，重新放入数据
+            //Empty the trash can data table and reposition the data
             trashCanList.clear();
-            //清空地图标记列表
+            //Clear Map Tag List
             markerList.clear();
-            //清除地图标记
-            //TODO: marker刷新会导致打开的infowindow关闭
+            //Clear map markers
+            //The marker refresh will cause the open infowindow to close
             googleMap.clear();
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 JSONObject jsonObj = null;
                 try {
                     jsonObj = jsonArray.getJSONObject(i);
-                    //将JSONObject的数据放入trashCanBean对象
+                    //Place JSONObject data into the trashCanBean object
                     TrashCanBean trashCanBean = new TrashCanBean();
                     trashCanBean.setId(jsonObj.getInt("Id"));
                     trashCanBean.setDistance(jsonObj.getInt("Distance"));
@@ -561,12 +616,12 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 
                     trashCanBean.setLocationDescription(jsonObj.getString("LocationDescription"));
                     trashCanBean.setMode(jsonObj.getString("Mode"));
-                    //时间戳转date
+                    //Timestamp to date
                     Long timeStamp = Long.parseLong(jsonObj.getJSONObject("LastEmptyTime").getString("time"));
                     Date LastEmptyTime = new Date(timeStamp);
                     trashCanBean.setLastEmptyTime(LastEmptyTime);
 
-                    //将trashCanBean对象插入trashCanList
+                    //Insert trashCanBean object into trashCanList
                     trashCanList.add(trashCanBean);
 
 //                        MarkerOptions markerOptions = new MarkerOptions();
@@ -575,23 +630,23 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 //                        googleMap.addMarker(markerOptions);
                 } catch (Exception e) {
                     Toast.makeText(MainActivity.this,  e.getMessage(), Toast.LENGTH_SHORT).show();
-                    Log.d("地图icon问题", e.getMessage());
+                    Log.d("Map icon issues", e.getMessage());
                     throw new RuntimeException(e);
                 }
             }
 
-            //设置地图标记
+            //Set map markers
             setMarkerIcon(null);
 
         } catch (JSONException e) {
             throw new RuntimeException(e);
         }
-        //emergency布局
+        //emergency layout
         ImageView emergencyImageview = findViewById(R.id.emergency_imageview);
         TextView emergencyTextview = findViewById(R.id.emergency_textview);
         List<Integer> emergencyIdList = new ArrayList<>();
         for(TrashCanBean bean:trashCanList){
-            //假定45℃为警报温度
+            //Assume 45 ℃ as the alarm temperature.
             if(bean.getTemperature()>45){
                 emergencyIdList.add(bean.getId());
             }
@@ -609,12 +664,19 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                 str += emergencyIdList.get(i).toString();
             }
             emergencyTextview.setText(str);
+
+            //Fire Notification
+            if(pref.getBoolean("ifNotification", false)){
+                String title = "emergency";
+                String text = "There are " + emergencyIdList.size() + " trash cans currently on fire";
+                makeNotification(title, text);
+            }
         }
 
     }
 
     /**
-     * 判断网络是否连接
+     * Determine if the network is connected
      */
 //    private boolean isConnectIsNomarl() {
 //        ConnectivityManager connectivityManager = (ConnectivityManager) this.getApplicationContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -630,7 +692,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 
 
     /***
-     * 检查google play 服务是否可用
+     * Check if Google Play service is available
      */
     private Boolean checkGooglePlayServices() {
         GoogleApiAvailability googleApiAvailability = GoogleApiAvailability.getInstance();
@@ -650,10 +712,10 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /***
-     * 使用Dexter进行动态权限申请
+     * Using Dexter for dynamic permission application
      */
     private void checkPermission() {
-        //多个权限
+        //Multiple permissions
 //        Dexter.withContext(this).withPermissions(
 //                Manifest.permission.INTERNET
 //                ,Manifest.permission.ACCESS_NETWORK_STATE
@@ -661,7 +723,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 //            @Override
 //            public void onPermissionsChecked(MultiplePermissionsReport multiplePermissionsReport) {
 //                if(multiplePermissionsReport.areAllPermissionsGranted()){
-//                    Toast.makeText(MainActivity.this, "全部授权完成", Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(MainActivity.this, "Authorization successful", Toast.LENGTH_SHORT).show();
 //                }
 //            }
 //
@@ -670,15 +732,15 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
 //                permissionToken.continuePermissionRequest();
 //            }
 //        }).check();
-        //单个权限
+        //Individual permission
         Dexter.withContext(this).withPermission(Manifest.permission.ACCESS_FINE_LOCATION).withListener(new PermissionListener() {
             @Override
             public void onPermissionGranted(PermissionGrantedResponse permissionGrantedResponse) {
                 isPermissionGranter = true;
-                Toast.makeText(MainActivity.this, "授权成功", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Authorization successful", Toast.LENGTH_SHORT).show();
             }
 
-            //拒绝：跳转到应用详情
+            //If rejected: Jump to application details
             @Override
             public void onPermissionDenied(PermissionDeniedResponse permissionDeniedResponse) {
                 Intent intent = new Intent();
@@ -696,7 +758,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     }
 
     /***
-     * 设置垃圾桶图标样式
+     * Set trash can icon style
      */
     private void setMarkerIcon(List<Integer> planIdSet){
         if(trashCanList == null || trashCanList.size() == 0){
@@ -725,22 +787,24 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             double dep = bean.getDepth();
             LatLng latLng = new LatLng(bean.getLatitude(), bean.getLongitude());
 
-            if(bean.getTemperature() > 45){
-                Marker marker = googleMap.addMarker(
-                        new MarkerOptions()
-                                .position(latLng)
-                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_alert)));
-                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
-                marker.setTag(bean);
-                markerList.add(marker);
-                continue;
-            }
             if((dep-dis)/dep > 0.9){
                 Marker marker = googleMap.addMarker(
                         new MarkerOptions()
                                 .position(latLng)
                                 .icon(BitmapDescriptorFactory.fromBitmap(bitmap_full)));
-                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                //Associate data with tags, use Marker. setTag() to store any data object through tags, and use Marker.
+                // getTag() to retrieve the data object
+                marker.setTag(bean);
+                markerList.add(marker);
+                continue;
+            }
+            if(bean.getTemperature() > 45){
+                Marker marker = googleMap.addMarker(
+                        new MarkerOptions()
+                                .position(latLng)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bitmap_alert)));
+                //Associate data with tags, use Marker. setTag() to store any data object through tags, and use Marker.
+                // getTag() to retrieve the data object
                 marker.setTag(bean);
                 markerList.add(marker);
                 continue;
@@ -750,7 +814,8 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                         new MarkerOptions()
                                 .position(latLng)
                                 .icon(BitmapDescriptorFactory.fromBitmap(bitmap_plan)));
-                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                //Associate data with tags, use Marker. setTag() to store any data object through tags, and use Marker.
+                // getTag() to retrieve the data object
                 marker.setTag(bean);
                 markerList.add(marker);
                 continue;
@@ -760,7 +825,8 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
                         new MarkerOptions()
                                 .position(latLng)
                                 .icon(BitmapDescriptorFactory.fromBitmap(bitmap_normal)));
-                //将数据与标记关联,使用 Marker.setTag() 通过标记来存储任意数据对象，并可使用 Marker.getTag() 检索该数据对象
+                //Associate data with tags, use Marker. setTag() to store any data object through tags, and use Marker.
+                // getTag() to retrieve the data object
                 marker.setTag(bean);
                 markerList.add(marker);
                 continue;
@@ -769,6 +835,9 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
         }
     }
 
+    /***
+     * Called when the map is ready
+     */
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
         googleMap = map;
@@ -811,7 +880,7 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             }
         });
 
-        //自定义信息窗口的内容和设计
+        //Customize the content and design of the information window
         //https://developers.google.com/maps/documentation/android-sdk/infowindows?hl=zh-cn
         map.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
             @Nullable
@@ -850,18 +919,10 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             }
         });
 
-//        LatLng latLng = new LatLng(52.45092015708054, -1.930555058272646);
-//        MarkerOptions markerOptions = new MarkerOptions();
-//        markerOptions.title("UOB");
-//        markerOptions.position(latLng);
-//        googleMap.addMarker(markerOptions);
-//        // 移动相机视角
-//        CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
-//        googleMap.animateCamera(cameraUpdate);
-        // 缩放按钮
+        // Zoom button
         googleMap.getUiSettings().setZoomControlsEnabled(true);
         googleMap.getUiSettings().setZoomGesturesEnabled(true);
-        //获取自己位置
+        //Get user location
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             // TODO: Consider calling
             //    ActivityCompat#requestPermissions
@@ -873,31 +934,75 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
             return;
         }
         googleMap.setMyLocationEnabled(true);
-        //显示罗盘和导航toolbar
+        //Display compass and navigation toolbar
         googleMap.getUiSettings().setCompassEnabled(true);
         googleMap.getUiSettings().setMapToolbarEnabled(true);
 
-        // 移动相机视角到当前位置
-        LocationManager mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE); // 位置
-        Location mlocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER); // 网络
+        // Move the camera's perspective to the current position
+        LocationManager mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
+        Location mlocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
         LatLng latLng = new LatLng(mlocation.getLatitude(), mlocation.getLongitude());
         CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(latLng, 15);
         googleMap.animateCamera(cameraUpdate);
     }
 
     /***
-     * 检查GPS是否开启
+     * Check if GPS is turned on
      */
     private void checkGPS(){
         LocationManager locationManager
                 = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         boolean gps = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         if(!gps){
-            //TODO：此处dialog不显示且会黑屏，可能是未进入应用界面的问题
-            Toast.makeText(MainActivity.this, "GPS不可用,请开启GPS", Toast.LENGTH_SHORT).show();
+            //The dialog here is not displayed and will appear black, which may be due to not entering the application interface
+            Toast.makeText(MainActivity.this, "GPS not available, please turn on GPS", Toast.LENGTH_SHORT).show();
             Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
             startActivity(intent);
         }
+    }
+
+    /***
+     * create notification related method
+     */
+    private String createNotificationChannel(String channelID, String channelNAME, int level) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            NotificationChannel channel = new NotificationChannel(channelID, channelNAME, level);
+            manager.createNotificationChannel(channel);
+            return channelID;
+        } else {
+            return null;
+        }
+    }
+
+    /***
+     * Create a notification
+     */
+    private void makeNotification(String title, String text) {
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        PendingIntent pendingIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_IMMUTABLE);
+
+        String channelId = createNotificationChannel("my_channel_ID", "my_channel_NAME", NotificationManager.IMPORTANCE_HIGH);
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(getApplicationContext(), channelId)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setContentIntent(pendingIntent)
+                .setSmallIcon(R.drawable.icon_emergency)
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true);
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        notificationManager.notify(100, notification.build());
     }
 
     @Override
@@ -928,14 +1033,14 @@ public class MainActivity extends BaseActivity implements OnMapReadyCallback {
     protected void onDestroy() {
         super.onDestroy();
         mapView.onDestroy();
-        //注销EventBus
+        //unregister EventBus
         EventBus.getDefault().unregister(this);
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
         super.onSaveInstanceState(outState, outPersistentState);
-//        此处和官方文档不同：
+//        This is different from the official document：
 //  https://developers.google.com/maps/documentation/android-sdk/map?hl=zh-cn#get_a_handle_to_the_fragment_and_register_the_callback
         mapView.onSaveInstanceState(outState);
     }

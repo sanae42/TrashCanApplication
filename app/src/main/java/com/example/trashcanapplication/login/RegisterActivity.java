@@ -30,17 +30,22 @@ import org.json.JSONObject;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * @Title：UserSettingActivity.java
+ * @Description: The activity of registering an account for a user.
+ * @author P Geng
+ */
 public class RegisterActivity extends BaseActivity {
 
-        //sp数据库 存放应用设置状态
+        //SharedPreferences
         private SharedPreferences pref;
         private SharedPreferences.Editor editor;
 
         private MyMqttClient myMQTTClient;
-        private static Integer Id = 1;
-        private String ClientId = "Android/"+Id;
+        private static String IP;
+        private String ClientId;
 
-        //进度条窗口
+        //Progress Dialog
         private ProgressDialog progressDialog;
 
         @Override
@@ -52,14 +57,17 @@ public class RegisterActivity extends BaseActivity {
             pref = PreferenceManager.getDefaultSharedPreferences(this);
             editor = pref.edit();
 
-            //使用EventBus与线程交流
+            //Obtain IP from SharedPerformance
+            IP = pref.getString("ipStr","");
+            ClientId = "Android/"+IP;
+
+            //Using EventBus to communicate with threads
             EventBus.getDefault().register(this);
 
-            //        导航条
+            //        toolbar
             Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
             setSupportActionBar(toolbar);
 
-            //   设置actionbar（即toolbar）最左侧按钮显示状态和图标
             ActionBar actionBar = getSupportActionBar();
             if (actionBar != null) {
                 actionBar.setDisplayHomeAsUpEnabled(true);
@@ -77,18 +85,17 @@ public class RegisterActivity extends BaseActivity {
                     String psw1 = password1EditText.getText().toString();
                     String psw2 = password2EditText.getText().toString();
                     if(!psw1.equals(psw2)){
-                        Toast.makeText(getApplicationContext(), "两次密码输入不一致", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "The two password inputs are inconsistent", Toast.LENGTH_SHORT).show();
                         Toast.makeText(getApplicationContext(), password1EditText.getText()+" "+password2EditText.getText(), Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    //展示进度条
+                    //show progressDialog
                     try{
                         progressDialog = ProgressDialog.show(com.example.trashcanapplication.login.RegisterActivity.this,"加载中","正在努力加载");
                     }catch (Exception e){
-                        Log.d("进度条窗口闪退", e.getMessage());
+                        Log.d("Progress Bar Window Flashback", e.getMessage());
                     }
                     Timer timer = new Timer();
-                    //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
                     TimerTask task = new TimerTask() {
                         @Override
                         public void run() {
@@ -98,10 +105,9 @@ public class RegisterActivity extends BaseActivity {
                             timer.cancel();
                         }
                     };
-                    //6000ms执行一次
                     timer.schedule(task, 6000);
 
-                    //发送登录请求
+                    //Send login request
                     JSONObject jsonObject = new JSONObject();
                     try {
                         jsonObject.put("dataType", "RegisterRequest");
@@ -118,6 +124,9 @@ public class RegisterActivity extends BaseActivity {
 
         }
 
+    /***
+     *EventBus callback
+     */
         @Subscribe(threadMode = ThreadMode.MAIN)
         public void onMessageEvent(String s) {
             JSONObject j;
@@ -125,40 +134,38 @@ public class RegisterActivity extends BaseActivity {
                 j = new JSONObject(s);
                 String sender = j.getString("sender");
                 String dataType = j.getString("dataType");
-                //接收到的JSON数据为，全部垃圾桶状态数据
-                // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
                 if (sender.equals("myMqttClient") && dataType.equals("registerReplyData")) {
                     if(j.getString("result").equals("succeeded")){
                         if(progressDialog!=null){
                             progressDialog.dismiss();
                         }
-                        Toast.makeText(getApplicationContext(), "注册成功", Toast.LENGTH_SHORT).show();
-                        //回到主活动
+                        Toast.makeText(getApplicationContext(), "register succeed", Toast.LENGTH_SHORT).show();
+                        //Return to main activity
                         ActivityCollector.backToMainActivity();
                     }else {
                         if(progressDialog!=null){
                             progressDialog.dismiss();
                         }
-                        Toast.makeText(getApplicationContext(), "注册失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getApplicationContext(), "register failed", Toast.LENGTH_SHORT).show();
                     }
                 }
 
             } catch (Exception e) {
-                Toast.makeText(getApplicationContext(), "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
-                Log.d("登录问题", e.getMessage());
+                Toast.makeText(getApplicationContext(), "JSON conversion error :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+                Log.d("Login Issues", e.getMessage());
             }
         }
 
-        /**
-         * 按键监听，此处即toolbar上按键
-         */
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            switch (item.getItemId()) {
-                case android.R.id.home:
-                    finish();
-                    break;
-            }
-            return true;
+    /**
+     * Listen to the button, which is the button on the toolbar.
+     */
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                break;
         }
+        return true;
     }
+}
