@@ -9,17 +9,25 @@ import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.greenrobot.eventbus.EventBus;
 
-// 继承自MqttCallbackExtended而非MqttCallback，可以重写connectComplete方法。MqttCallbackExtended继承自connectComplete
+/**
+ * @Title：MQTTReceiveCallback.java
+ * @Description: When an event related to mqttClient occurs, the program will call the corresponding method in MQTTReceiveCallback.
+ * @author P Geng
+ */
 public class MQTTReceiveCallback implements MqttCallbackExtended {
+    /**
+     * Called when successfully connecting to the broker
+     */
     @Override
     public void connectComplete(boolean reconnect, String serverURI) {
         Log.e("MqttCallbackBus", "MQTT_connectComplete:");
-        //断开连接必须重新订阅才能收到之前订阅的session连接的消息
         if(reconnect){
-//            Log.e("MqttCallbackBus_重连订阅主题", "MQTT_connectComplete:");
         }
     }
 
+    /**
+     *  Called when disconnected, then get the MyMqttClient instance and call reConnect()
+     */
     @Override
     public void connectionLost(Throwable cause) {
         // 连接丢失后，进行重连
@@ -31,18 +39,24 @@ public class MQTTReceiveCallback implements MqttCallbackExtended {
         myMQTTClient.reConnect();
     }
 
+    /**
+     * Called when the message is successfully delivered
+     */
     @Override
     public void deliveryComplete(IMqttDeliveryToken token) {
 //        System.out.println("deliveryComplete---------" + token.isComplete());
     }
 
+    /**
+     * Called when a new message is received
+     */
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        // subscribe后得到的消息会执行到这里面
-        System.out.print("接收消息主题 : " + topic);
-        System.out.print("   接收消息Qos : " + message.getQos());
-        System.out.println("   接收消息内容 : " + new String(message.getPayload()));
-        //TODO:解决子线程操作布局的问题
+        System.out.print("Received a message:   ");
+        System.out.print("topic : " + topic);
+        System.out.print("   qos : " + message.getQos());
+        System.out.println("   content : " + new String(message.getPayload()));
+
         try {
 //            Looper.prepare();
 //            Toast.makeText(context, "messageArrived: "+new String(message.getPayload()), Toast.LENGTH_SHORT).show();
@@ -51,10 +65,9 @@ public class MQTTReceiveCallback implements MqttCallbackExtended {
             EventBus.getDefault().post(s);
         } catch (Exception e) {
             e.printStackTrace();
-            Log.d(TAG, "Context错误:"+e.getMessage()+" ");
+            Log.d(TAG, "Context error:"+e.getMessage()+" ");
         }
 
-        Log.d(TAG, "接收数据: "+new String(message.getPayload()));
     }
 }
 

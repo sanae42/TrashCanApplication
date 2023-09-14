@@ -30,9 +30,14 @@ import org.json.JSONObject;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * @Title：UserSettingActivity.java
+ * @Description: The activity of login an account for a user.
+ * @author P Geng
+ */
 public class LoginActivity extends BaseActivity {
 
-    //sp数据库 存放应用设置状态
+    //SharedPreferences
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
@@ -40,7 +45,7 @@ public class LoginActivity extends BaseActivity {
     private static String IP;
     private String ClientId;
 
-    //进度条窗口
+    //Progress Dialog
     private ProgressDialog progressDialog;
 
     @Override
@@ -52,18 +57,17 @@ public class LoginActivity extends BaseActivity {
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
 
-        //从SharedPerformance获取IP
+        //Obtain IP from SharedPerformance
         IP = pref.getString("ipStr","");
         ClientId = "Android/"+IP;
 
-        //使用EventBus与线程交流
+        //Using EventBus to communicate with threads
         EventBus.getDefault().register(this);
 
-        //        导航条
+        //        toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //   设置actionbar（即toolbar）最左侧按钮显示状态和图标
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -77,14 +81,13 @@ public class LoginActivity extends BaseActivity {
         signinButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //展示进度条
+                //show progressDialog
                 try{
                     progressDialog = ProgressDialog.show(LoginActivity.this,"loading","Loading data from the server");
                 }catch (Exception e){
-                    Log.d("进度条窗口闪退", e.getMessage());
+                    Log.d("Progress Bar Window Flashback", e.getMessage());
                 }
                 Timer timer = new Timer();
-                //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
                 TimerTask task = new TimerTask() {
                     @Override
                     public void run() {
@@ -94,10 +97,9 @@ public class LoginActivity extends BaseActivity {
                         timer.cancel();
                     }
                 };
-                //6000ms执行一次
                 timer.schedule(task, 6000);
 
-                //发送登录请求
+                //send login request
                 JSONObject jsonObject = new JSONObject();
                 try {
                     jsonObject.put("dataType", "LoginRequest");
@@ -130,15 +132,13 @@ public class LoginActivity extends BaseActivity {
             j = new JSONObject(s);
             String sender = j.getString("sender");
             String dataType = j.getString("dataType");
-            //接收到的JSON数据为，全部垃圾桶状态数据
-            // TODO:客户端每一段时间发送一次数据，会导致marker刷新，打开的infowindow会关闭；可以只在oncreate时接收一次数据，之后手动刷新；或之后不再clear marker
             if (sender.equals("myMqttClient") && dataType.equals("loginReplyData")) {
                 if(j.getString("result").equals("succeeded")){
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
                     Toast.makeText(getApplicationContext(), "Login succeeded", Toast.LENGTH_SHORT).show();
-                    //回到主活动
+                    //Return to main activity
                     ActivityCollector.backToMainActivity();
                 }else {
                     if(progressDialog!=null){
@@ -149,13 +149,13 @@ public class LoginActivity extends BaseActivity {
             }
 
         } catch (Exception e) {
-            Toast.makeText(getApplicationContext(), "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
-            Log.d("登录问题", e.getMessage());
+            Toast.makeText(getApplicationContext(), "JSON conversion error :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.d("Login Issues", e.getMessage());
         }
     }
 
     /**
-     * 按键监听，此处即toolbar上按键
+     * Listen to the button, which is the button on the toolbar.
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

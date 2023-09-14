@@ -6,6 +6,10 @@ import android.os.Bundle;
 
 import com.example.trashcanapplication.R;
 
+/**
+ * @Title：AboutActivity.java
+ * @author P Geng
+ */
 public class AboutActivity extends AppCompatActivity {
 
     @Override

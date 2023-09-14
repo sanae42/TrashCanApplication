@@ -5,15 +5,20 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.widget.FrameLayout;
 
-//原理：https://blog.csdn.net/THEONE10211024/article/details/44649289
-//代码：https://blog.csdn.net/Ever69/article/details/79497587
+/**
+ * @Title：MyMapView.java
+ * @Description: Intercept touch events for parent controls
+ * @author Ever69
+ * Refer to: https://blog.csdn.net/Ever69/article/details/79497587
+ *           https://blog.csdn.net/THEONE10211024/article/details/44649289
+ */
 public class MyMapView extends FrameLayout {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
 
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
-            getParent().requestDisallowInterceptTouchEvent(true);//请求父控件不拦截触摸事件
+            getParent().requestDisallowInterceptTouchEvent(true);//Request parent control not to intercept touch events
         } else if (ev.getAction() == MotionEvent.ACTION_UP) {
             getParent().requestDisallowInterceptTouchEvent(false);
         }

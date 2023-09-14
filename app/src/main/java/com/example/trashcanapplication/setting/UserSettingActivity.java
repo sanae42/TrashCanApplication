@@ -37,6 +37,11 @@ import org.json.JSONObject;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * @Title：UserSettingActivity.java
+ * @Description: An activity related to user account setting
+ * @author P Geng
+ */
 public class UserSettingActivity extends BaseActivity {
 
     Toolbar toolbar;
@@ -45,10 +50,10 @@ public class UserSettingActivity extends BaseActivity {
     private static String IP;
     private String ClientId;
 
-    //进度条窗口
+    //Progress Dialog
     private ProgressDialog progressDialog;
 
-    //sp数据库 存放应用设置状态
+    //SharedPreferences
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
@@ -61,11 +66,11 @@ public class UserSettingActivity extends BaseActivity {
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
 
-        //从SharedPerformance获取IP
+        //Obtain IP from SharedPerformance
         IP = pref.getString("ipStr","");
         ClientId = "Android/"+IP;
 
-        //使用EventBus与线程交流
+        //Using EventBus to communicate with threads
         EventBus.getDefault().register(this);
 
         initView();
@@ -73,6 +78,9 @@ public class UserSettingActivity extends BaseActivity {
 
     }
 
+    /***
+     *EventBus callback
+     */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String s) {
         JSONObject j;
@@ -85,14 +93,14 @@ public class UserSettingActivity extends BaseActivity {
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
-                    Toast.makeText(getApplicationContext(), "修改成功", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Modified succeed", Toast.LENGTH_SHORT).show();
                     //回到主活动
 //                    ActivityCollector.backToMainActivity();
                 }else {
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
-                    Toast.makeText(getApplicationContext(), "修改失败", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Modification failed", Toast.LENGTH_SHORT).show();
                 }
             }
             if (sender.equals("myMqttClient") && dataType.equals("editPasswordReplyData")) {
@@ -100,28 +108,30 @@ public class UserSettingActivity extends BaseActivity {
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
-                    Toast.makeText(getApplicationContext(), "修改成功", Toast.LENGTH_SHORT).show();
-                    //回到主活动
-//                    ActivityCollector.backToMainActivity();
+                    Toast.makeText(getApplicationContext(), "Modified succeed", Toast.LENGTH_SHORT).show();
+
                 }else {
                     if(progressDialog!=null){
                         progressDialog.dismiss();
                     }
-                    Toast.makeText(getApplicationContext(), "修改失败", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Modification failed", Toast.LENGTH_SHORT).show();
                 }
             }
 
         } catch (Exception e) {
-            Log.d("登录问题", e.getMessage());
+            Log.d("Login Issues", e.getMessage());
         }
     }
 
+    /***
+     *Initialize Layout
+     */
     private void initView(){
-        //        导航条
+        //        toolbar
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //   设置actionbar（即toolbar）最左侧按钮显示状态和图标
+        //   initialize actionBar
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -165,11 +175,10 @@ public class UserSettingActivity extends BaseActivity {
 
     }
 
+    /***
+     *Display the dialog for setting user name
+     */
     private void showUsernameSettingDialog() {
-        /* @setView 装入自定义View ==> R.layout.dialog_customize
-         * 由于dialog_customize.xml只放置了一个EditView，因此和图8一样
-         * dialog_customize.xml可自定义更复杂的View
-         */
         AlertDialog.Builder customizeDialog =
                 new AlertDialog.Builder(UserSettingActivity.this);
         final View dialogView = LayoutInflater.from(UserSettingActivity.this)
@@ -183,14 +192,14 @@ public class UserSettingActivity extends BaseActivity {
                         EditText edit_text =
                                 (EditText) dialogView.findViewById(R.id.edit_text);
 
-                        //展示进度条
+                        //show progress dialog
                         try{
-                            progressDialog = ProgressDialog.show(UserSettingActivity.this,"加载中","正在努力加载");
+                            progressDialog = ProgressDialog.show(UserSettingActivity.this,"LOADING","LOADING");
                         }catch (Exception e){
-                            Log.d("进度条窗口闪退", e.getMessage());
+                            Log.d("Progress Bar Window Flashback", e.getMessage());
                         }
                         Timer timer = new Timer();
-                        //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
+                        //TimerTask belongs to a child thread and cannot execute toast “Can't toast on a thread that has not called Looper.prepare()”
                         TimerTask task = new TimerTask() {
                             @Override
                             public void run() {
@@ -200,10 +209,9 @@ public class UserSettingActivity extends BaseActivity {
                                 timer.cancel();
                             }
                         };
-                        //6000ms执行一次
                         timer.schedule(task, 6000);
 
-                        //发送请求
+                        //send request
                         JSONObject jsonObject = new JSONObject();
                         try {
                             jsonObject.put("dataType", "EditUserNameRequest");
@@ -220,11 +228,10 @@ public class UserSettingActivity extends BaseActivity {
         customizeDialog.show();
     }
 
+    /***
+     *Display the dialog for setting password
+     */
     private void showPasswordSettingDialog() {
-        /* @setView 装入自定义View ==> R.layout.dialog_customize
-         * 由于dialog_customize.xml只放置了一个EditView，因此和图8一样
-         * dialog_customize.xml可自定义更复杂的View
-         */
         AlertDialog.Builder customizeDialog =
                 new AlertDialog.Builder(UserSettingActivity.this);
         final View dialogView = LayoutInflater.from(UserSettingActivity.this)
@@ -243,18 +250,17 @@ public class UserSettingActivity extends BaseActivity {
                         String psw1 = edit_text1.getText().toString();
                         String psw2 = edit_text2.getText().toString();
                         if(!psw1.equals(psw2)){
-                            Toast.makeText(getApplicationContext(), "密码输入不一致", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "Inconsistent password input", Toast.LENGTH_SHORT).show();
                             return;
                         }
 
                         //展示进度条
                         try{
-                            progressDialog = ProgressDialog.show(UserSettingActivity.this,"加载中","正在努力加载");
+                            progressDialog = ProgressDialog.show(UserSettingActivity.this,"LOADING","LOADING");
                         }catch (Exception e){
-                            Log.d("进度条窗口闪退", e.getMessage());
+                            Log.d("Progress Bar Window Flashback", e.getMessage());
                         }
                         Timer timer = new Timer();
-                        //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
                         TimerTask task = new TimerTask() {
                             @Override
                             public void run() {
@@ -264,10 +270,9 @@ public class UserSettingActivity extends BaseActivity {
                                 timer.cancel();
                             }
                         };
-                        //6000ms执行一次
                         timer.schedule(task, 6000);
 
-                        //发送请求
+                        //send request
                         JSONObject jsonObject = new JSONObject();
                         try {
                             jsonObject.put("dataType", "EditPasswordRequest");
@@ -285,7 +290,7 @@ public class UserSettingActivity extends BaseActivity {
     }
 
     /**
-     * 按键监听，此处即toolbar上按键
+     * Listen to the button, which is the button on the toolbar.
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

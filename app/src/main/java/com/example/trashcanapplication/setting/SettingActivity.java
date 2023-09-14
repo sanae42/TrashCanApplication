@@ -18,13 +18,18 @@ import android.widget.Toast;
 import com.example.trashcanapplication.R;
 import com.example.trashcanapplication.activityCollector.BaseActivity;
 
+/**
+ * @Title：SettingActivity.java
+ * @Description: An activity related to notification setting
+ * @author P Geng
+ */
 public class SettingActivity extends BaseActivity {
 
     Toolbar toolbar;
 
     Switch backgroundNotificationSwitch;
 
-    //sp数据库 存放应用设置状态
+    //SharedPreferences
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
@@ -39,12 +44,15 @@ public class SettingActivity extends BaseActivity {
         initView();
     }
 
+    /***
+     *Initialize Layout
+     */
     private void initView(){
-        //        导航条
+        //        Toolbar
         toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //   设置actionbar（即toolbar）最左侧按钮显示状态和图标
+        //   initialize actionBar
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -66,7 +74,7 @@ public class SettingActivity extends BaseActivity {
     }
 
     /**
-     * 按键监听，此处即toolbar上按键
+     * Listen to the button, which is the button on the toolbar.
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

@@ -25,17 +25,6 @@
         <activity
             android:name=".about.AboutActivity"
             android:exported="false" />
-
-        <service
-            android:name=".service.MyService"
-            android:enabled="true"
-            android:exported="true" />
-
-        <receiver
-            android:name=".service.AlarmReceiver"
-            android:enabled="true"
-            android:exported="true" />
-
         <activity
             android:name=".setting.SettingActivity"
             android:exported="false" />
@@ -50,16 +39,16 @@
             android:exported="false" />
         <activity
             android:name=".TrashCanDetailActivity"
-            android:exported="false" /> <!-- 谷歌地图所需 -->
+            android:exported="false" />
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
         <meta-data
             android:name="com.google.android.gms.version"
-            android:value="@integer/google_play_services_version" /> <!-- 网络库 -->
+            android:value="@integer/google_play_services_version" />
         <uses-library
             android:name="org.apache.http.legacy"
-            android:required="false" /> <!-- mqtt -->
+            android:required="false" />
         <service android:name="org.eclipse.paho.android.service.MqttService" />
 
         <activity

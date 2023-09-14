@@ -54,6 +54,11 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * @Title：TrashCanDetailActivity.java
+ * @Description: An activity that displays detailed information of a trash can
+ * @author P Geng
+ */
 public class TrashCanDetailActivity extends BaseActivity {
 
     private int TrashCanId;
@@ -62,7 +67,7 @@ public class TrashCanDetailActivity extends BaseActivity {
 
     JSONObject jsonData;
 
-    //sp数据库 存放应用设置状态
+    //SharedPreferences
     private SharedPreferences pref;
     private SharedPreferences.Editor editor;
 
@@ -71,16 +76,16 @@ public class TrashCanDetailActivity extends BaseActivity {
     private static String IP;
     private String ClientId;
 
-    //折线图的下拉选择器
+    //Dropdown selector for line charts
     private Spinner spinnerLinechart;
-    //折线图
+    //line chart
     private LineChart lineChart;
-    //饼图
+    //pie chart
     private PieChart pieChart;
-    //进度条窗口
+    //Progress Dialog
     private ProgressDialog progressDialog;
 
-    //垃圾桶模式的下拉选择器
+    //Dropdown selector for trash can mode
     private Spinner spinnerTrashcanMode;
 
     @SuppressLint("MissingInflatedId")
@@ -94,11 +99,11 @@ public class TrashCanDetailActivity extends BaseActivity {
         Depth = intent.getIntExtra("Depth",-1);
         Mode = intent.getStringExtra("Mode");
 
-        //        导航条
+        //        toolbar
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        //   设置actionbar（即toolbar）最左侧按钮显示状态和图标
+        //   Set the leftmost button display status and icon of the actionbar ( toolbar)
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
@@ -129,14 +134,14 @@ public class TrashCanDetailActivity extends BaseActivity {
             }
         });
 
-        //垃圾桶模式
+        //trash can mode
         spinnerTrashcanMode = findViewById(R.id.spinner_trashcan_mode);
         ArrayAdapter<CharSequence> spinnerTrashcanModeAdapter = ArrayAdapter.createFromResource(this,
                 R.array.trashcan_mode_array, android.R.layout.simple_spinner_item);
         spinnerTrashcanModeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         // Apply the adapter to the spinner
         spinnerTrashcanMode.setAdapter(spinnerTrashcanModeAdapter);
-        //最初选中此垃圾桶Mode对应的模式选项
+        //Initially select the mode option corresponding to this trash can Mode
         spinnerTrashcanMode.setSelection(Integer.parseInt(Mode)-1);
         spinnerTrashcanMode.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -157,23 +162,18 @@ public class TrashCanDetailActivity extends BaseActivity {
         pref = PreferenceManager.getDefaultSharedPreferences(this);
         editor = pref.edit();
 
-        //折线图表组件
         lineChart = findViewById(R.id.line_chart);
-        //初始化图表
         initLineChart();
-        //饼状图表组件
         pieChart = findViewById(R.id.pie_chart);
-        //初始化图表
         initPieChart();
 
-
         myMQTTClient = MyMqttClient.getInstance();
-        //使用EventBus与线程交流
+        //Using EventBus to communicate with threads
         EventBus.getDefault().register(this);
-        //向服务器发送垃圾桶数据请求
+        //Send garbage can data request to the server
         JSONObject jsonObject = new JSONObject();
 
-        //从SharedPerformance获取IP
+        //Obtain IP from SharedPerformance
         IP = pref.getString("ipStr","");
         ClientId = "Android/"+IP;
 
@@ -187,14 +187,14 @@ public class TrashCanDetailActivity extends BaseActivity {
         MyMqttClient myMQTTClient = MyMqttClient.getInstance();
         myMQTTClient.publishMessage("MQTTServerSub",jsonObject.toString(),0);
 
-        //展示进度条
+        //Display progress bar
         try{
             progressDialog = ProgressDialog.show(this,"loading","Loading data from the server");
         }catch (Exception e){
-            Log.d("进度条窗口闪退", e.getMessage());
+            Log.d("Progress Bar Window Flashback", e.getMessage());
         }
         Timer timer = new Timer();
-        //TimerTask属于子线程，不能执行toast “Can't toast on a thread that has not called Looper.prepare()”
+        //TimerTask belongs to a child thread and cannot execute toast “Can't toast on a thread that has not called Looper.prepare()”
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
@@ -204,55 +204,58 @@ public class TrashCanDetailActivity extends BaseActivity {
                 timer.cancel();
             }
         };
-        //6000ms执行一次
         timer.schedule(task, 6000);
     }
 
+    /***
+     *EventBus callback
+     */
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void onMessageEvent(String s) {
-        //TODO:此处需考虑JSON损坏，转换失败的情况
         //{"sender":"myMqttClient","dataType":"allTrashCanData","payload":[{"Id":1,"Distance":67,"Humidity":67,"Temperature":67,"Latitude":52.445978,"Longitude":-1.935167},{"Id":2,"Distance":33,"Humidity":333,"Temperature":3333,"Latitude":52.444256,"Longitude":-1.934156}]}
         try {
             JSONObject j = new JSONObject(s);
             String sender = j.getString("sender");
             String dataType = j.getString("dataType");
-            //接收到的JSON数据为，某个垃圾桶的历史数据
+            //The received JSON data is the historical data of a certain trash can
             if (sender.equals("myMqttClient") && dataType.equals("thisTrashCanData")){
 
                 jsonData = j;
                 setLineChartData(spinnerLinechart.getSelectedItem().toString());
-                //设置数据
+                //Set data for the chart
                 setPieChartData();
-                //取消进度条
+                //dismiss dialog
                 progressDialog.dismiss();
             }
 
         } catch (Exception e) {
-            Toast.makeText(TrashCanDetailActivity.this, "JSON转换出错 :" + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Toast.makeText(TrashCanDetailActivity.this, "JSON conversion error :" + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
-    //初始化图表
+    /***
+     *Initialize LineChart
+     */
     private void initLineChart(){
-        //点击监听
+        //Click listener
         //chart.setOnChartValueSelectedListener(this);
-        //绘制网格线
+        //Draw grid lines
         lineChart.setDrawGridBackground(false);
 
-        //描述文本
+        //description text
         lineChart.getDescription().setEnabled(false);
 
-        //是否可以触摸
+        //if can be touched
         lineChart.setTouchEnabled(true);
 
-        //启用缩放和拖动
+        //Enable Zoom and Drag
         lineChart.setDragEnabled(true);
         lineChart.setScaleEnabled(true);
 
-        // 如果禁用，可以分别在x轴和y轴上进行缩放
+        // If disabled, scaling can be done on the x-axis and y-axis respectively
         lineChart.setPinchZoom(true);
 
-        //设置背景色
+        //Set Background Color
         // chart.setBackgroundColor(Color.GRAY);
 
         //创建自定义MarkerView（扩展MarkerView）并指定布局
@@ -267,7 +270,7 @@ public class TrashCanDetailActivity extends BaseActivity {
 
 //    https://blog.csdn.net/qq_29848853/article/details/130868720
 //    file:///C:/Users/admin/Downloads/android%E6%97%B6%E9%97%B4%E5%9D%90%E6%A0%87%E6%8A%98%E7%BA%BF%E5%9B%BEMPAndr%20(1).html
-        //TODO：改写横坐标格式，但是这种方法有可能会有重复的横坐标
+        //Rewrite date data to horizontal coordinate format, but this method may have duplicate horizontal coordinates
         SimpleDateFormat mFormat = new SimpleDateFormat("M.d");
         lineChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter() {
             @Override
@@ -276,75 +279,76 @@ public class TrashCanDetailActivity extends BaseActivity {
             }
         });
 //
-        //配置y坐标左边数据
+        //Configure the data on the left side of the y-coordinate
         YAxis rightAxis = lineChart.getAxisRight();
         rightAxis.setInverted(true);
         rightAxis.setAxisMinimum(0f); // this replaces setStartAtZero(true)
 //
-        //关闭y坐标左边数据
+        //Close the data on the left side of the y-coordinate
         YAxis leftAxis = lineChart.getAxisLeft();
         leftAxis.setEnabled(false);
 
 //        setData();
     }
 
-    //初始化图表
+    /***
+     *Initialize PieChart
+     */
     private void initPieChart() {
-        //是否用于百分比数据
+        //Is it used for percentage data
         pieChart.setUsePercentValues(true);
         pieChart.getDescription().setEnabled(false);
         pieChart.setExtraOffsets(5, 10, 5, 5);
 
         pieChart.setDragDecelerationFrictionCoef(0.95f);
 
-        //设置中间文本的字体
+        //Set the font of the middle text
         //chart.setCenterTextTypeface(tfLight);
         //chart.setCenterText(generateCenterSpannableText());
 
-        //是否绘制中心圆形区域和颜色
+        //Draw the central circular area and color
         pieChart.setDrawHoleEnabled(true);
         pieChart.setHoleColor(Color.WHITE);
 
-        //是否绘制中心边透明区域
+        //Draw the transparent area of the center edge
         pieChart.setTransparentCircleColor(Color.WHITE);
         pieChart.setTransparentCircleAlpha(110);
 
-        //绘制中中心圆，和圆边的边框大小
+        //Draw the center circle and the border size of the circle edges
         pieChart.setHoleRadius(58f);
         pieChart.setTransparentCircleRadius(61f);
 
-        //是否绘制中心区域文字
+        //Draw center area text
         pieChart.setDrawCenterText(true);
 
-        //默认旋转角度
+        //Default rotation angle
         pieChart.setRotationAngle(0);
-        //通过触摸启用图表的旋转
+        //Enable chart rotation by touching
         pieChart.setRotationEnabled(true);
-        //触摸进行高亮的突出设置
+        //Touch to highlight settings
         pieChart.setHighlightPerTapEnabled(true);
 
-        //设置单位
         // chart.setUnit(" €");
         // chart.setDrawUnitsInChart(true);
 
-        //添加选择侦听器
+        //Add Selection Listener
         pieChart.setOnChartValueSelectedListener(new OnChartValueSelectedListener() {
             @Override
             public void onValueSelected(Entry e, Highlight h) {
-                //选中的扇页
+                //
             }
 
             @Override
             public void onNothingSelected() {
-                //未选中的扇页
+                //
             }
         });
 
-        //动画
+        //animation
         pieChart.animateY(1400, Easing.EaseInOutQuad);
         // chart.spin(2000, 0, 360);
 
-        //图例
+        //legend
         Legend l = pieChart.getLegend();
         l.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
         l.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
@@ -354,18 +358,21 @@ public class TrashCanDetailActivity extends BaseActivity {
         l.setYEntrySpace(0f);
         l.setYOffset(0f);
 
-        //标签样式
+        //Label Style
         pieChart.setEntryLabelColor(Color.WHITE);
         //chart.setEntryLabelTypeface(tfRegular);
         pieChart.setEntryLabelTextSize(12f);
     }
 
+    /***
+     *Set data for line charts
+     */
     private void setLineChartData(String SpinnerSelection) {
         try {
             String payload = jsonData.getString("payload");
             JSONArray jsonArray = new JSONArray(payload);
 
-            System.out.println("JSON数据打印："+jsonData.toString());
+//            System.out.println("JSON数据打印："+jsonData.toString());
 
             ArrayList<Entry> entries = new ArrayList<>();
 
@@ -389,21 +396,24 @@ public class TrashCanDetailActivity extends BaseActivity {
                 entries.add(new Entry(xVal, yVal));
 
             }
-            //通过x坐标值排序
+            //Sort by x-coordinate value
             Collections.sort(entries, new EntryXComparator());
             LineDataSet set1 = new LineDataSet(entries, "DataSet 1");
-            //使用数据集创建数据对象
+            //Creating Data Objects Using Datasets
             LineData data = new LineData(set1);
             lineChart.setData(data);
-            //刷新绘图
+            //Refresh Drawing
             lineChart.invalidate();
         } catch (JSONException e) {
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
 
+    /***
+     *Set data for pie charts
+     */
     private void setPieChartData(){
-        //从JSONdata里分析数据
+        //Analyzing data from JSONdata
         Long fullTime = 0L;
         Long unfullTime = 0L;
         try {
@@ -430,23 +440,21 @@ public class TrashCanDetailActivity extends BaseActivity {
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
-        //二维数据的二级数据
         ArrayList<PieEntry> entries = new ArrayList<>();
-        //new PieEntry(数值，描述，图标icon)第一个
+
         entries.add(new PieEntry((float)unfullTime, "unfullTime", null));
         entries.add(new PieEntry((float)fullTime, "fullTime", null));
 
-        //二维数据的一级数据
         PieDataSet dataSet = new PieDataSet(entries, "Election Results");
-        //数据配置，是否绘制图标
+
         dataSet.setDrawIcons(false);
-        //扇页之间的空白间距
+
         dataSet.setSliceSpace(3f);
-        //图标偏移
+
         dataSet.setIconsOffset(new MPPointF(0, 40));
         dataSet.setSelectionShift(5f);
 
-        //添加颜色集合，
+        //Add Color Collection，
         ArrayList<Integer> colors = new ArrayList<>();
         //colors.add(ColorTemplate.LIBERTY_COLORS[0]);
         colors.add(Color.parseColor("#3790A2"));
@@ -454,7 +462,7 @@ public class TrashCanDetailActivity extends BaseActivity {
         dataSet.setColors(colors);
         //dataSet.setSelectionShift(0f);
 
-        //设置图表数据
+        //Set Chart Data
         PieData data = new PieData(dataSet);
         data.setValueFormatter(new PercentFormatter());
         data.setValueTextSize(11f);
@@ -462,15 +470,15 @@ public class TrashCanDetailActivity extends BaseActivity {
         //data.setValueTypeface(tfLight);
         pieChart.setData(data);
 
-        //撤消所有高光
+        //Remove All Highlights
 //        pieChart.highlightValues(null);
 
-        //刷新图表UI
+        //Refresh Chart UI
         pieChart.invalidate();
     }
 
     /**
-     * 按键监听，此处即toolbar上按键
+     * Listen to the button, which is the button on the toolbar.
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
